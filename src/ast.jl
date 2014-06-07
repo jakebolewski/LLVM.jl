@@ -27,11 +27,11 @@ end
 # -----------------------------------------------------------------------------
 # parameter attributes 
 # -----------------------------------------------------------------------------
-abstract LLVMParamAttribute <: LLVMAstNode
+abstract ParamAttribute <: LLVMAstNode
 
 for typ in [:SignExt, :InReg, :SRet, :NoAlias, :ByVal, :NoCapture, :Nest]
     @eval begin
-        immutable $typ <: LLVMParamAttribute
+        immutable $typ <: ParamAttribute
         end
     end
 end
@@ -39,13 +39,13 @@ end
 # -----------------------------------------------------------------------------
 # function attributes 
 # -----------------------------------------------------------------------------
-abstract LLVMFuncAttribute <: LLVMAstNode
+abstract FuncAttribute <: LLVMAstNode
 
-immutable Alignment <: LLVMFuncAttribute
+immutable Alignment <: FuncAttribute
     val::Int
 end
 
-immutable StackAlignment <: LLVMFuncAttribute
+immutable StackAlignment <: FuncAttribute
     val::Int
 end
 
@@ -54,7 +54,7 @@ for typ in [:NoReturn, :NoUnwind, :ReadNone, :ReadOnly, :NoInline,
             :NoRedZone, :NoImplicitFloat, :Naked, :InlineHint, :ReturnsTwice, 
             :UWTable, :NonLazyBind]
 @eval begin
-        immutable $typ <: LLVMFuncAttribute 
+        immutable $typ <: FuncAttribute 
         end
     end
 end 
@@ -62,18 +62,18 @@ end
 # -----------------------------------------------------------------------------
 # Calling Conventions
 # -----------------------------------------------------------------------------
-abstract LLVMCallConvention <: LLVMAstNode
+abstract CallingConvention <: LLVMAstNode
 
-immutable CConvention <: LLVMCallConvention
+immutable CConvention <: CallingConvention
 end
 
-immutable FastConvention <: LLVMCallConvention 
+immutable FastConvention <: CallingConvention
 end
 
-immutable ColdConvention <: LLVMCallConvention
+immutable ColdConvention <: CallingConvention
 end
 
-immutable NumberedConvention <: LLVMCallConvention
+immutable NumConvention <: CallingConvention
     val::Int
 end
 
@@ -274,11 +274,11 @@ type IndirectBr <: Terminator
 end
 
 type Invoke <: Terminator
-    convention::LLVMCallConvention
-    retattrs::Vector{LLVMParamAttribute}
+    convention::CallingConvention
+    retattrs::Vector{ParamAttribute}
     func::CallableOperand
-    args::Vector{(Operand, Vector{LLVMParamAttribute})}
-    funcattrs::Vector{LLVMFuncAttribute}
+    args::Vector{(Operand, Vector{ParamAttribute})}
+    funcattrs::Vector{FuncAttribute}
     retdest::Name
     exdest::Name
     metadata::InstructionMetadata
@@ -514,15 +514,15 @@ type Phi <: Instruction
     metadata::InstructionMetadata
 end 
 
-typealias CallArgs Vector{(Operand, Vector{LLVMParamAttribute})}
+typealias CallArgs Vector{(Operand, Vector{ParamAttribute})}
 
 type Call <: Instruction
     istailcall::Bool
-    callcov::LLVMCallConvention 
-    retattrs::Vector{LLVMParamAttribute}
+    callcov::CallingConvention 
+    retattrs::Vector{ParamAttribute}
     func::CallableOperand
     args::CallArgs
-    funcattrs::Vector{LLVMFuncAttribute}
+    funcattrs::Vector{FuncAttribute}
     metadata::InstructionMetadata
 end 
 
@@ -602,7 +602,7 @@ abstract LLVMGlobal <: LLVMAstNode
 type Parameter <: LLVMAstNode
     typ::LLVMType
     name::LLVMName
-    attrs::Vector{LLVMParamAttribute}
+    attrs::Vector{ParamAttribute}
 end
 
 type BasicBlock <: LLVMAstNode
@@ -635,13 +635,13 @@ end
 type Func <: LLVMGlobal
     linkage::LLVMLinkage 
     visibility::Visibility
-    callingcov::LLVMCallConvention
-    retattrs::Vector{LLVMParamAttribute}
+    callingcov::CallingConvention
+    retattrs::Vector{ParamAttribute}
     rettyp::LLVMType
     name::LLVMName
     params::Vector{Parameter}
     varargs::Bool
-    funcattrs::Vector{LLVMFuncAttribute}
+    funcattrs::Vector{FuncAttribute}
     section::Union(Nothing, String)
     alignment::Int
     gcname::Union(Nothing, String)
