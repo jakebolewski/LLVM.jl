@@ -1,5 +1,5 @@
 module LLVM
 
-# package code goes here
+include("ast.jl")
 
 end # module
