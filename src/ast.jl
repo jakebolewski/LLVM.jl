@@ -2,6 +2,8 @@ module Ast
 
 abstract LLVMAstNode 
 
+abstract LandingPadClause
+
 abstract MetadataNode <: LLVMAstNode 
 abstract Operand <: LLVMAstNode
 abstract CallableOperand <: LLVMAstNode
@@ -97,6 +99,57 @@ immutable PairOfFloats <: FloatingPointFormat
 end
 
 # -----------------------------------------------------------------------------
+# Memory Ordering 
+# -----------------------------------------------------------------------------
+abstract MemoryOrdering <: LLVMAstNode
+
+for typ in [:Unordered, :Monotonic, :Acquire, :Release, 
+            :AcquireRelease, :SequentiallyConsistent]
+    @eval begin
+        immutable $typ <: MemoryOrdering
+        end
+    end 
+end
+
+# -----------------------------------------------------------------------------
+# Atomicity
+# -----------------------------------------------------------------------------
+immutable Atomicity <: LLVMAstNode
+    cross_thread::Bool
+    memory_ordering::MemoryOrdering
+end
+
+# -----------------------------------------------------------------------------
+# Atomic Ops 
+# -----------------------------------------------------------------------------
+abstract AtomicRMWOperation  <: LLVMAstNode
+
+for op in [:Xchg, :Add, :Sub, :And, :Nand, :Or, :Xor, :Max, :Min, :UMax, :Umin]
+    typ = symbol(string("Atomic", op))
+    @eval begin
+        immutable $typ <: AtomicRMWOperation
+        end
+    end
+end
+
+# -----------------------------------------------------------------------------
+# Comparison Predicates
+# -----------------------------------------------------------------------------
+abstract CmpPredicate <: LLVMAstNode
+
+for typ in [:UNE,:SGT,:ORD,:UGT,:SLE,:OGT,:OLT,:OEQ,:ULT,:SGE,
+            :ONE,:True,:OGE,:UEQ,:UGE,:NE,:ULE,:UNO,:SLT,:False,:OLE,:EQ]
+    @eval begin 
+        immutable $typ <: CmpPredicate
+        end 
+    end 
+end 
+
+typealias IntPredicate Union(EQ, NE, UGT, UGE, ULT, ULE, SGT, SGE, SLT, SLE)
+typealias FloatPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, 
+                               ORD, UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
+
+# -----------------------------------------------------------------------------
 # LLVM Types
 # -----------------------------------------------------------------------------
 abstract LLVMType <: LLVMAstNode
@@ -186,10 +239,9 @@ end
 # -----------------------------------------------------------------------------
 # Terminal Instructions
 # -----------------------------------------------------------------------------
-typealias InstructionMetadata Vector{(String, MetadataNode)}
-
-abstract Instruction <: LLVMAstNode 
 abstract Terminator <: LLVMAstNode
+
+typealias InstructionMetadata Vector{(String, MetadataNode)}
 
 type Ret <: Terminator
     op::Union(Nothing, Operand)
@@ -242,69 +294,291 @@ type Unreachable <: Terminator
 end
 
 # -----------------------------------------------------------------------------
-# Memory Ordering 
+# Non-Terminal Instructions
+# http://llvm.org/docs/LangRef.html#binaryops
+# http://llvm.org/docs/LangRef.html#bitwiseops
+# http://llvm.org/docs/LangRef.html#memoryops
+# http://llvm.org/docs/LangRef.html#otherops
 # -----------------------------------------------------------------------------
-abstract MemoryOrdering <: LLVMAstNode
+abstract Instruction <: LLVMAstNode 
+abstract FastMathFlags <: LLVMAstNode 
 
-for typ in [:Unordered, :Monotonic, :Acquire, :Release, 
-            :AcquireRelease, :SequentiallyConsistent]
-    @eval begin
-        immutable $typ <: MemoryOrdering
-        end
-    end 
+type Add <: Instruction
+    nsw::Bool
+    nuw::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
 end
 
-# -----------------------------------------------------------------------------
-# Atomicity
-# -----------------------------------------------------------------------------
-immutable Atomicity <: LLVMAstNode
-    cross_thread::Bool
-    memory_ordering::MemoryOrdering
+type FAdd <: Instruction
+    fmflags::FastMathFlags
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
 end
 
-# -----------------------------------------------------------------------------
-# Landing Pad Clauses 
-# -----------------------------------------------------------------------------
-abstract LandingPadClause <: LLVMAstNode
-
-immutable CatchClause <: LandingPadClause
-    val::LLVMConstant
+type Sub <: Instruction
+    nsw::Bool
+    nuw::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
 end
 
-immutable FilterClause <: LandingPadClause
-    val::LLVMConstant 
+type FSub <: Instruction
+    fmflags::FastMathFlags
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
 end
 
-# -----------------------------------------------------------------------------
-# Atomic Ops 
-# -----------------------------------------------------------------------------
-abstract AtomicRMWOperation  <: LLVMAstNode
-
-for op in [:Xchg, :Add, :Sub, :And, :Nand, :Or, :Xor, :Max, :Min, :UMax, :Umin]
-    typ = symbol(string("Atomic", op))
-    @eval begin
-        immutable $typ <: AtomicRMWOperation
-        end
-    end
+type Mul <: Instruction
+    nsw::Bool
+    nuw::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
 end
 
-# -----------------------------------------------------------------------------
-# Integer, FloatingPoint Comparison Predicates 
-# -----------------------------------------------------------------------------
-abstract CmpPredicate  <: LLVMAstNode
+type FMul <: Instruction
+    fmflags::FastMathFlags
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
 
-for typ in [:UNE,:SGT,:ORD,:UGT,:SLE,:OGT,:OLT,:OEQ,:ULT,:SGE,
-            :ONE,:True,:OGE,:UEQ,:UGE,:NE,:ULE,:UNO,:SLT,:False,:OLE,:EQ]
-    @eval begin
-        immutable $typ <: CmpPredicate
-        end
-    end
+type UDiv <: Instruction
+    exact::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type SDiv <: Instruction
+    exact::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type FDiv <: Instruction
+    fmflags::FastMathFlags
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type URem <: Instruction
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type SRem <: Instruction
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type FRem <: Instruction
+    fmflags::FastMathFlags
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type Sh1 <: Instruction
+    nsw::Bool
+    nuw::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type LShr <: Instruction
+    exact::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type AShr <: Instruction
+    exact::Bool
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type And <: Instruction
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
 end 
 
-typealias IntPredicate Union(EQ, NE, UGT, UGE, ULT, ULE, SGT, SGE, SLT, SLE)
+type Or <: Instruction
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end 
 
-typealias FloatPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, 
-                               ORD, UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
+type XOr <: Instruction
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type Alloca <: Instruction 
+    typ::LLVMType
+    len::Union(Nothing, Operand)
+    align::Int
+    metadata::InstructionMetadata
+end
+
+type Load <: Instruction
+    volatile::Bool
+    addr::Operand
+    val::Operand
+    atomicity::Union(Nothing, Atomicity)
+    align::Int
+    metadata::InstructionMetadata
+end
+
+type Store <: Instruction
+    volatile::Bool
+    addr::Operand
+    val::Operand
+    atomicity::Union(Nothing, Atomicity)
+    align::Int
+    metadata::InstructionMetadata
+end
+
+type GetElemPtr <: Instruction
+    inbounds::Bool
+    addr::Operand
+    idxs::Vector{Operand}
+    metadata::InstructionMetadata
+end
+
+type Fence <: Instruction
+    atomicity::Atomicity 
+    metadata::InstructionMetadata
+end
+
+type CmpXchg <: Instruction
+    volatile::Bool 
+    addr::Operand 
+    expect::Operand
+    replace::Operand
+    atomicity::Atomicity
+    metadata::InstructionMetadata 
+end 
+
+type AtomicRMW <: Instruction
+    volatile::Bool 
+    op::AtomicRMWOperation 
+    addr::Operand
+    val::Operand
+    atomicity::Atomicity 
+    metadata::InstructionMetadata
+end 
+
+for typ in [:Trunc, :ZExt, :SExt, :FPToUI, :FPToSI, :UIToFP, :SIToFP,
+            :FPTrunc, :FPExt, :PtrToInt, :IntToPtr, :BitCast, :AddrSpaceCast]
+    @eval begin
+        type $typ <: Instruction
+            op::Operand
+            typ::LLVMType
+            metadata::InstructionMetadata
+        end 
+    end 
+end 
+
+type ICmp <: Instruction
+    pred::IntPredicate
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end 
+
+type FCmp <: Instruction
+    pred::FloatPredicate
+    op1::Operand
+    op2::Operand
+    metadata::InstructionMetadata
+end
+
+type Phi <: Instruction
+    typ::LLVMType
+    incoming::Vector{(Operand, Name)}
+    metadata::InstructionMetadata
+end 
+
+typealias CallArgs Vector{(Operand, Vector{LLVMParamAttribute})}
+
+type Call <: Instruction
+    istailcall::Bool
+    callcov::LLVMCallConvention 
+    retattrs::Vector{LLVMParamAttribute}
+    func::CallableOperand
+    args::CallArgs
+    funcattrs::Vector{LLVMFuncAttribute}
+    metadata::InstructionMetadata
+end 
+
+type Select <: Instruction
+    cond::Operand
+    tval::Operand
+    fval::Operand
+    metadata::InstructionMetadata
+end 
+
+type VAArg <: Instruction
+    args::Operand
+    typ::LLVMType
+    metadata::InstructionMetadata 
+end 
+
+type ExtractElement <: Instruction
+    vec::Operand
+    idx::Operand
+    metadata::InstructionMetadata 
+end 
+
+type InsertElement <: Instruction
+    vec::Operand
+    elem::Operand
+    idx::Operand
+    metadata::Operand
+end 
+
+type ShuffleVector <: Instruction
+    op1::Operand
+    op2::Operand
+    mask::LLVMConstant
+    metadata::InstructionMetadata 
+end 
+
+type ExtractValue <: Instruction
+    aggregate::Operand
+    idxs::Vector{Int}
+    metadata::InstructionMetadata 
+end 
+
+type InsertValue <: Instruction
+    aggregate::Operand
+    elem::Operand
+    idxs::Vector{Int}
+    metadata::InstructionMetadata 
+end 
+
+type LandingPad <: Instruction
+    typ::LLVMType
+    func::Operand
+    cleanup::Bool
+    clauses::Vector{LandingPadClause}
+    metadata::InstructionMetadata
+end 
 
 # -----------------------------------------------------------------------------
 # Visibility 
@@ -342,7 +616,7 @@ type GlobalVar <: LLVMGlobal
     linkage::LLVMLinkage
     visibility::Visibility
     addrspace::AddrSpace
-    unamed_addr::Bool
+    unamedaddr::Bool
     isconst::Bool
     typ::LLVMType
     init::Union(Nothing, LLVMConstant)
@@ -373,6 +647,5 @@ type Func <: LLVMGlobal
     gcname::Union(Nothing, String)
     blocks::Vector{BasicBlock}
 end 
-
 
 end
