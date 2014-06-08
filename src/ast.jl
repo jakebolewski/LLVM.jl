@@ -2,8 +2,6 @@ module Ast
 
 abstract LLVMAstNode 
 
-abstract LandingPadClause
-
 abstract LLVMLinkage <: LLVMAstNode
 
 typealias LLVMFloat Union(Float16, Float32, Float64)
@@ -210,6 +208,8 @@ end
 # -----------------------------------------------------------------------------
 # Operand 
 # ----------------------------------------------------------------------------- 
+# an 'Operand' is roughly an argument to a 'LLVM.Ast.Instruction' 
+abstract Operand <: LLVMAstNode
 
 # 'MetadataNodeId' is a unique number for identifying a metadata node
 immutable MetadataNodeID
@@ -226,9 +226,6 @@ end
 immutable MetadataNodeRef <: LLVMMetadata
     val::MetadataNodeID
 end
-
-# an 'Operand' is roughly an argument to a 'LLVM.Ast.Instruction' 
-abstract Operand <: LLVMAstNode
 
 # %foo 
 type LocalRef <: Operand 
@@ -254,48 +251,48 @@ typealias CallableOperand Union(Operand, InlineAssembly)
 # -----------------------------------------------------------------------------
 # Constant
 # -----------------------------------------------------------------------------
-abstract LLVMConstant <: LLVMAstNode
+abstract Constant <: LLVMAstNode
 
 # TODO: it might make more sense to treat these as literal Julia values,
 # and infer bits from the type
-immutable ConstInt <: LLVMConstant
+immutable ConstInt <: Constant
     bits::Int
     val::Integer
 end
 
-immutable ConstFloat <: LLVMConstant 
+immutable ConstFloat <: Constant 
     val::LLVMFloat
 end
 
-immutable ConstNull <: LLVMConstant
+immutable ConstNull <: Constant
     typ::LLVMType
 end
 
-immutable ConstStruct <: LLVMConstant
+immutable ConstStruct <: Constant
     name::Union(Nothing, LLVMName)
     packed::Bool
-    vals::Vector{LLVMConstant}
+    vals::Vector{Constant}
 end
 
-immutable ConstArray <: LLVMConstant
+immutable ConstArray <: Constant
     typ::LLVMType
-    vals::Vector{LLVMConstant}
+    vals::Vector{Constant}
 end
 
-immutable ConstVector{T<:LLVMConstant} <: LLVMConstant
+immutable ConstVector{T<:Constant} <: Constant
     vals::Vector{T}
 end
 
-immutable ConstUndef <: LLVMConstant
+immutable ConstUndef <: Constant
     typ::LLVMType
 end
 
-immutable BlockAddress <: LLVMConstant
+immutable BlockAddress <: Constant
     func::Name
     block::Name
 end
 
-immutable ConstGlobalRef <: LLVMConstant
+immutable ConstGlobalRef <: Constant
     typ::LLVMType
     name::Name
 end
@@ -327,7 +324,7 @@ end
 type Switch <: Terminator
     op::Operand
     defaultdest::Name
-    dests::Vector{(LLVMConstant, Name)}
+    dests::Vector{(Constant, Name)}
     metadata::InstructionMetadata
 end
 
@@ -366,6 +363,16 @@ end
 # -----------------------------------------------------------------------------
 abstract Instruction <: LLVMAstNode 
 abstract FastMathFlags <: LLVMAstNode 
+
+abstract LandingPadClause <: LLVMAstNode
+
+immutable Catch <: LandingPadClause
+    val::Constant
+end 
+
+immutable Filter <: LandingPadClause
+    val::Constant
+end 
 
 type Add <: Instruction
     nsw::Bool
@@ -619,7 +626,7 @@ end
 type ShuffleVector <: Instruction
     op1::Operand
     op2::Operand
-    mask::LLVMConstant
+    mask::Constant
     metadata::InstructionMetadata 
 end 
 
@@ -683,7 +690,7 @@ type GlobalVar <: LLVMGlobal
     unamedaddr::Bool
     isconst::Bool
     typ::LLVMType
-    init::Union(Nothing, LLVMConstant)
+    init::Union(Nothing, Constant)
     section::Union(Nothing, String)
     alignment::Int
 end 
@@ -693,7 +700,7 @@ type GlobalAlias <: LLVMGlobal
     linkage::LLVMLinkage
     visibility::Visibility
     typ::LLVMType
-    aliasee::LLVMConstant
+    aliasee::Constant
 end
 
 type Func <: LLVMGlobal
