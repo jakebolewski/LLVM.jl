@@ -146,8 +146,9 @@ for typ in [:UNE,:SGT,:ORD,:UGT,:SLE,:OGT,:OLT,:OEQ,:ULT,:SGE,
 end 
 
 typealias IntPredicate Union(EQ, NE, UGT, UGE, ULT, ULE, SGT, SGE, SLT, SLE)
-typealias FloatPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, 
-                               ORD, UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
+
+typealias FloatPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, ORD, 
+                               UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
 
 # -----------------------------------------------------------------------------
 # LLVM Types
@@ -190,10 +191,76 @@ end
 abstract MetadataType <: LLVMType
 
 # -----------------------------------------------------------------------------
-# constants
+# Inline Assembly 
+# http://llvm.org/docs/LangRef.html#inline-assembler-expressions
+# ----------------------------------------------------------------------------- 
+abstract Dialect 
+
+# dialect of assembly used in an inline assembly string
+immutable ATTDialect <: Dialect end
+immutable IntelDialect <: Dialect end
+
+# Used with 'Call' instruction
+type InlineAssembly <: LLVMAstNode 
+    typ::LLVMType
+    assembly::String
+    constraints::String
+    has_side_effects::Bool
+    alignstack::Bool
+    dialect::Dialect
+end 
+
+# -----------------------------------------------------------------------------
+# Operand 
+# ----------------------------------------------------------------------------- 
+
+# 'MetadataNodeId' is a unique number for identifying a metadata node
+immutable MetadataNodeID
+    val::Int
+end 
+
+# http://llvm.org/docs/LangRef.html#metadata
+abstract LLVMMetadata <: LLVMAstNode
+
+immutable MetadataNode <: LLVMMetadata
+    val::Vector{Union(Nothing, Operand)}
+end 
+
+immutable MetadataNodeRef <: LLVMMetadata
+    val::MetadataNodeID
+end
+
+# an 'Operand' is roughly an argument to a 'LLVM.Ast.Instruction' 
+abstract Operand <: LLVMAstNode
+
+# %foo 
+type LocalRef <: Operand 
+    typ::LLVMType 
+    name::LLVMName
+end 
+
+type ConstOperand <: Operand 
+    val::ConstOperand
+end 
+
+type MetadataStrOperand <: Operand
+    val::String
+end
+
+type MetadataNodeOperand <: Operand
+    val::MetadataNode
+end 
+
+# the 'LLVM.Ast.Call' instruction is special.  As the callee can be inline asm
+typealias CallableOperand Union(Operand, InlineAssembly)
+
+# -----------------------------------------------------------------------------
+# Constant
 # -----------------------------------------------------------------------------
 abstract LLVMConstant <: LLVMAstNode
 
+# TODO: it might make more sense to treat these as literal Julia values,
+# and infer bits from the type
 immutable ConstInt <: LLVMConstant
     bits::Int
     val::Integer
