@@ -4,9 +4,6 @@ abstract LLVMAstNode
 
 abstract LandingPadClause
 
-abstract MetadataNode <: LLVMAstNode 
-abstract Operand <: LLVMAstNode
-abstract CallableOperand <: LLVMAstNode
 abstract LLVMLinkage <: LLVMAstNode
 
 typealias LLVMFloat Union(Float16, Float32, Float64)
