@@ -656,13 +656,13 @@ end
 # -----------------------------------------------------------------------------
 abstract Visibility <: LLVMAstNode
 
-immutable DefaultVis <: Visibility
+immutable DefaultVisibility <: Visibility
 end
 
-immutable HiddenVis <: Visibility
+immutable HiddenVisibility <: Visibility
 end
 
-immutable ProtectedVis <: Visibility
+immutable ProtectedVisibility <: Visibility
 end
 
 # -----------------------------------------------------------------------------
