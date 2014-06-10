@@ -20,7 +20,7 @@ type UnName <: LLVMName
 end 
 
 # -----------------------------------------------------------------------------
-# parameter attributes 
+# Parameter Attributes 
 # -----------------------------------------------------------------------------
 abstract ParamAttribute <: LLVMAstNode
 
@@ -32,7 +32,7 @@ for typ in [:SignExt, :InReg, :SRet, :NoAlias, :ByVal, :NoCapture, :Nest]
 end
 
 # -----------------------------------------------------------------------------
-# function attributes 
+# Function Attributes 
 # -----------------------------------------------------------------------------
 abstract FuncAttribute <: LLVMAstNode
 
@@ -95,6 +95,8 @@ end
 
 # -----------------------------------------------------------------------------
 # Memory Ordering 
+# http://llvm.org/docs/LangRef.html#atomic-memory-ordering-constraints
+# http://llvm.org/docs/Atomics.html
 # -----------------------------------------------------------------------------
 abstract MemoryOrdering <: LLVMAstNode
 
@@ -108,6 +110,8 @@ end
 
 # -----------------------------------------------------------------------------
 # Atomicity
+# http://llvm.org/docs/Atomics.html
+# http://llvm.org/docs/LangRef.html#singlethread 
 # -----------------------------------------------------------------------------
 immutable Atomicity <: LLVMAstNode
     cross_thread::Bool
@@ -116,6 +120,7 @@ end
 
 # -----------------------------------------------------------------------------
 # Atomic Ops 
+# http://llvm.org/docs/LangRef.html#atomicrmw-instruction 
 # -----------------------------------------------------------------------------
 abstract AtomicRMWOperation  <: LLVMAstNode
 
@@ -140,49 +145,71 @@ for typ in [:UNE,:SGT,:ORD,:UGT,:SLE,:OGT,:OLT,:OEQ,:ULT,:SGE,
     end 
 end 
 
-typealias IntPredicate Union(EQ, NE, UGT, UGE, ULT, ULE, SGT, SGE, SLT, SLE)
+# http://llvm.org/docs/LangRef.html#icmp-instruction
+typealias IntCmpPredicate Union(EQ, NE, UGT, UGE, ULT, ULE, SGT, SGE, SLT, SLE)
 
-typealias FloatPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, ORD, 
-                               UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
+# http://llvm.org/docs/LangRef.html#fcmp-instruction 
+typealias FloatCmpPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, ORD, 
+                                  UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
 
 # -----------------------------------------------------------------------------
 # LLVM Types
+# http://llvm.org/docs/LangRef.html#type-system
 # -----------------------------------------------------------------------------
 abstract LLVMType <: LLVMAstNode
 
+# http://llvm.org/docs/LangRef.html#void-type 
 immutable VoidType <: LLVMType
 end
 
+# http://llvm.org/docs/LangRef.html#integer-type
 immutable IntType <: LLVMType
     nbits::Int
 end
 
+# http://llvm.org/docs/LangRef.html#pointer-type
 immutable PtrType <: LLVMType
     typ::LLVMType
     addrspace::AddrSpace
 end
 
+# http://llvm.org/docs/LangRef.html#floating-point-types
 immutable FPType <: LLVMType
     nbits::Int
     fmt::FloatingPointFormat
 end
 
+# http://llvm.org/docs/LangRef.html#function-type
+immutable FunctionType <: LLVMType
+    restyp::LLVMType
+    argtyps::Vector{LLVMType}
+    varargs::Bool
+end 
+
+# http://llvm.org/docs/LangRef.html#vector-type 
 immutable VecType <: LLVMType
     typ::LLVMType
     len::Int
 end
 
+# http://llvm.org/docs/LangRef.html#structure-type
 immutable StructType <: LLVMType
     packed::Bool
     typs::Vector{LLVMType}
 end
 
+# http://llvm.org/docs/LangRef.html#array-type
 immutable ArrayType <: LLVMType
     typ::LLVMType
     len::Int
 end
 
-# NamedTypeReference Name
+# http://llvm.org/docs/LangRef.html#opaque-structure-types
+immutable NamedTypeRef
+    val::Name
+end 
+
+# http://llvm.org/docs/LangRef.html#opaque-structure-types
 abstract MetadataType <: LLVMType
 
 # -----------------------------------------------------------------------------
@@ -250,6 +277,8 @@ typealias CallableOperand Union(Operand, InlineAssembly)
 
 # -----------------------------------------------------------------------------
 # Constant
+# http://llvm.org/docs/LangRef.html#constants
+# http://llvm.org/docs/LangRef.html#constant-expressions 
 # -----------------------------------------------------------------------------
 abstract Constant <: LLVMAstNode
 
@@ -299,9 +328,11 @@ end
 
 # -----------------------------------------------------------------------------
 # Terminal Instructions
+# http://llvm.org/docs/LangRef.html#terminators 
 # -----------------------------------------------------------------------------
 abstract Terminator <: LLVMAstNode
 
+# http://llvm.org/docs/LangRef.html#metadata-nodes-and-metadata-strings 
 typealias InstructionMetadata Vector{(String, MetadataNode)}
 
 type Ret <: Terminator
@@ -566,14 +597,14 @@ for typ in [:Trunc, :ZExt, :SExt, :FPToUI, :FPToSI, :UIToFP, :SIToFP,
 end 
 
 type ICmp <: Instruction
-    pred::IntPredicate
+    pred::IntCmpPredicate
     op1::Operand
     op2::Operand
     metadata::InstructionMetadata
 end 
 
 type FCmp <: Instruction
-    pred::FloatPredicate
+    pred::FloatCmpPredicate
     op1::Operand
     op2::Operand
     metadata::InstructionMetadata
@@ -653,6 +684,7 @@ end
 
 # -----------------------------------------------------------------------------
 # Visibility 
+# http://llvm.org/docs/LangRef.html#visibility
 # -----------------------------------------------------------------------------
 abstract Visibility <: LLVMAstNode
 
@@ -667,21 +699,27 @@ end
 
 # -----------------------------------------------------------------------------
 # Globals 
+# http://llvm.org/doxygen/classllvm_1_1GlobalValue.html
 # -----------------------------------------------------------------------------
 abstract LLVMGlobal <: LLVMAstNode
 
+# Parameters for 'LLVM.Ast.Function'
 type Parameter <: LLVMAstNode
     typ::LLVMType
     name::LLVMName
     attrs::Vector{ParamAttribute}
 end
 
+# LLVM code in a function is a sequence of 'LLVM.Ast.BasicBlocks' with a
+# label, some instructions, and terminator
+# http://llvm.org/doxygen/classllvm_1_1BasicBlock.html>
 type BasicBlock <: LLVMAstNode
     name::LLVMName
     insts::Vector{Instruction}
-    term::Terminator
+    term::Terminator 
 end
 
+# http://llvm.org/docs/LangRef.html#global-variables
 type GlobalVar <: LLVMGlobal
     name::LLVMName
     linkage::LLVMLinkage
@@ -695,6 +733,7 @@ type GlobalVar <: LLVMGlobal
     alignment::Int
 end 
 
+# http://llvm.org/docs/LangRef.html#aliases 
 type GlobalAlias <: LLVMGlobal
     name::LLVMName
     linkage::LLVMLinkage
@@ -703,7 +742,8 @@ type GlobalAlias <: LLVMGlobal
     aliasee::Constant
 end
 
-type Func <: LLVMGlobal
+# http://llvm.org/docs/LangRef.html#functions
+type Function <: LLVMGlobal
     linkage::LLVMLinkage 
     visibility::Visibility
     callingcov::CallingConvention
