@@ -855,4 +855,84 @@ type Function <: LLVMGlobal
     blocks::Vector{BasicBlock}
 end 
 
+# -----------------------------------------------------------------------------
+# DataLayout
+# http://llvm.org/docs/LangRef.html#data-layout>
+# -----------------------------------------------------------------------------
+abstract Endianness
+
+immutable LittleEndian <: Endianness
+end
+
+immutable BigEndian <: Endianness
+end
+
+# describes how a given type must be aligned
+immutable AlignmentInfo
+    abi::Int
+    perferred::Int
+end
+
+# typeo of type for which 'AlignmentInfo' may be specified
+abstract AlignType
+
+immutable IntegerAlign <: AlignType end
+immutable VectorAlign <: AlignType end
+immutable FloatAlign <: AlignType end
+immutable AggregateAlign <: AlignType end
+
+# style of name mangling
+abstract Mangling
+
+immutable ELFMangling <: Mangling end
+immutable MIPSMangling <: Mangling end
+immutable MachOMangling <: Mangling end
+immutable WindowsCOFFMangling <: Mangling end
+
+# description of various data layout properties which may be used during optimization
+type DataLayout
+    endianness::Union(Nothing, Endianness)
+    mangling::Union(Nothing, Mangling)
+    stackalignment::Union(Nothing, Int)
+    pointerlayouts::Dict{AddrSpace, (Int, AlignmentInfo)}
+    typelayouts::Dict{(AlignType, Int), AlignmentInfo}
+    nativeSizes::Union(Nothing, Set{Int})
+end
+
+# -----------------------------------------------------------------------------
+# Module
+# -----------------------------------------------------------------------------
+# Anything that can be at the top level of a 'Module'
+abstract Definition
+
+type GlobalDefinition <: Definition
+    val::LLVMGlobal
+end
+
+type TypeDefinition <: Definition
+    name::LLVMName
+    typs::Vector{LLVMType}
+end
+
+type MetadataNodeDefinition <: Definition
+    id::MetadataNodeID
+    ops::Vector{Operand}
+end
+
+type NamedMetadataDefinition <: Definition
+    name::String
+    ids::Vector{MetadataNodeID}
+end
+
+type ModuleInlineAsm <: Definition
+    source::String
+end
+
+type Module
+    name::String
+    layout::Union(Nothing, DataLayout)
+    target::Union(Nothing, String)
+    defs::Vector{Definition}
+end
+
 end
