@@ -316,7 +316,7 @@ immutable ConstUndef <: Constant
     typ::LLVMType
 end
 
-immutable BlockAddress <: Constant
+immutable ConstBlockAddress <: Constant
     func::Name
     block::Name
 end
@@ -324,6 +324,102 @@ end
 immutable ConstGlobalRef <: Constant
     typ::LLVMType
     name::Name
+end
+
+type ConstGetElementPtr <: Constant
+    inbounds::Bool
+    addr::Constant
+    idxs::Vector{Constant}
+end
+
+for op in [:Add, :Sub, :Mul, :Shl]
+    typ = symbol(string("Const", op))
+    @eval begin
+        type $typ <: Constant
+            nsw::Bool
+            nuw::Bool
+            op1::Constant
+            op2::Constant
+        end
+    end
+end
+
+for op in [:FAdd, :FSub, :FMul, :FDiv, :URem, :SRem, :FRem, :And, :Or, :Xor]
+    typ = symbol(string("Const", op))
+    @eval begin
+        type $typ <: Constant
+            op1::Constant
+            op2::Constant
+        end 
+    end
+end
+
+for op in [:UDiv, :SDiv, :LShr, :AShr]
+    typ = symbol(string("Const", op))
+    @eval begin
+        type $typ <: Constant
+            exact::Bool
+            op1::Constant
+            op2::Constant
+        end
+    end
+end
+
+for op in [:Trunc, :ZExt, :Sext, :FPToUI, :FPToSI, :UIToFP, :SIToFP,
+           :FPTrunc, :FPExt, :PtrToInt, :IntToPtr, :BitCast]
+    typ = symbol(string("Const", op))
+    @eval begin
+        type $typ <: Constant
+            op::Constant
+            typ::LLVMType
+        end
+    end
+end
+
+type ConstICmp <: Constant
+    pred::IntCmpPredicate
+    op1::Constant
+    op2::Constant
+end
+
+type ConstFCmp <: Constant
+    pred::FloatCmpPredicate
+    op1::Constant 
+    op2::Constant
+end
+
+type ConstSelect <: Constant
+    cond::Constant
+    tval::Operand
+    fval::Operand
+end
+
+type ConstExtractElement <: Constant
+    vec::Constant
+    idx::Constant
+end
+
+type ConstInsertElement <: Constant
+    vec::Constant
+    elem::Constant
+    idx::Constant
+end
+
+type ConstShuffleVector
+    op1::Constant
+    op2::Constant
+    mask::Constant
+end
+
+type ConstExtractValue
+    aggregate::Constant 
+    idxs::Vector{Int}
+end
+
+type ConstInsertValue
+    aggregate::Constant
+    elem::Operand
+    idxs::Vector{Int}
 end
 
 # -----------------------------------------------------------------------------
