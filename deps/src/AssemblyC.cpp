@@ -27,4 +27,3 @@ void LLVM_General_WriteLLVMAssembly(LLVMModuleRef module, raw_ostream &os) {
 }
 
 }
-

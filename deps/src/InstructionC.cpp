@@ -249,4 +249,3 @@ unsigned LLVM_General_GetMetadata(
 }
 
 }
-

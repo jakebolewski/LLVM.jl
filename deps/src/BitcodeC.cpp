@@ -27,4 +27,3 @@ void LLVM_General_WriteBitcode(LLVMModuleRef m, raw_ostream &os) {
 }
 
 }
-

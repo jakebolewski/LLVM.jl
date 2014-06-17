@@ -70,4 +70,3 @@ LLVMAsmDialect LLVM_General_GetInlineAsmDialect(LLVMValueRef v) {
 }
 
 }
-

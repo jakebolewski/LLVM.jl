@@ -27,4 +27,3 @@ void LLVM_General_SetMCJITCompilerOptionsEnableFastISel(struct LLVMMCJITCompiler
 }
 
 }
-

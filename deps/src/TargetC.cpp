@@ -349,5 +349,4 @@ LLVMBool LLVM_General_TargetMachineEmit(
 	return false;
 }
 
-
 }
