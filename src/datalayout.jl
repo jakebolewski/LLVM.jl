@@ -206,9 +206,5 @@ parse_spec(io::IO, dl::Ast.DataLayout) = begin
     return dl
 end
 
-parse_datalayout(io::IO) = begin
-    dl = Ast.DataLayout()
-    return parse_spec(io, dl)
-end
-
+parse_datalayout(io::IO) = parse_spec(io, Ast.DataLayout())
 parse_datalayout(s::String) = parse_datalayout(IOBuffer(s))
