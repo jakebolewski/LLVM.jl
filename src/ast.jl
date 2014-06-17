@@ -870,7 +870,7 @@ end
 # describes how a given type must be aligned
 immutable AlignmentInfo
     abi::Int
-    perferred::Int
+    perferred::Union(Nothing, Int)
 end
 
 # typeo of type for which 'AlignmentInfo' may be specified
@@ -889,15 +889,34 @@ immutable MIPSMangling <: Mangling end
 immutable MachOMangling <: Mangling end
 immutable WindowsCOFFMangling <: Mangling end
 
+typealias PointerLayoutMap Associative{AddrSpace, (Int, AlignmentInfo)}
+typealias PointerLayoutDict Dict{AddrSpace, (Int, AlignmentInfo)}
+
+typealias TypeLayoutMap Associative{(AlignType, Int), AlignmentInfo}
+typealias TypeLayoutDict Dict{(AlignType, Int), AlignmentInfo}
+
 # description of various data layout properties which may be used during optimization
 type DataLayout
     endianness::Union(Nothing, Endianness)
     mangling::Union(Nothing, Mangling)
     stackalignment::Union(Nothing, Int)
-    pointerlayouts::Dict{AddrSpace, (Int, AlignmentInfo)}
-    typelayouts::Dict{(AlignType, Int), AlignmentInfo}
-    nativeSizes::Union(Nothing, Set{Int})
+    pointerlayouts::PointerLayoutMap
+    typelayouts::TypeLayoutMap
+    nativesizes::Union(Nothing, Set{Int})
 end
+
+
+DataLayout(;endianness=nothing, 
+            mangling=nothing, 
+            stackalignment=nothing,
+            pointerlayouts=PointerLayoutDict(),
+            typelayouts=TypeLayoutDict(),
+            nativesizes=nothing) = DataLayout(endianness,
+                                              mangling,
+                                              stackalignment,
+                                              pointerlayouts,
+                                              typelayouts,
+                                              nativesizes)
 
 # -----------------------------------------------------------------------------
 # Module
