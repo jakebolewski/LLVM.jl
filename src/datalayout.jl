@@ -58,8 +58,8 @@ end
 typelayouts_str(layouts::Ast.TypeLayoutMap) = begin
     strs = {}
     for (t, ai) in layouts
-        at, s = t
         io = IOBuffer()
+        at, s = t
         write(io, alignment_char(at))
         write_triple!(io, (s, ai))
         push!(strs, bytestring(io))
@@ -89,3 +89,126 @@ Base.print(io::IO, layout::Ast.DataLayout) = begin
     end
     write(io, join(strs, "-"))
 end
+
+parse_num(io::IO) = begin
+    num = Char[]
+    while !eof(io)
+        c = read(io, Char)
+        if !isdigit(c)
+            skip(io, -1)
+            break
+        end
+        push!(num, c)
+    end
+    return int(utf32(num))
+end
+
+parse_triple(io::IO) = begin
+    s = parse_num(io)
+    read(io, Char) === ':' || error("ill formed data layout")
+    abi = parse_num(io)
+    if eof(io)
+        return (s, Ast.AlignmentInfo(abi, nothing))
+    end
+    c = read(io, Char)
+    if c === ':'
+        pref = parse_num(io)
+        return (s, Ast.AlignmentInfo(abi, pref))
+    elseif c !== '-'
+        error("ill formed data layout")
+    end
+    skip(io, -1)
+    return (s, Ast.AlignmentInfo(abi, nothing))
+end
+
+parse_spec(io::IO, dl::Ast.DataLayout) = begin
+    eof(io) && error("cannot parse empty data layout spec")
+    while !eof(io)
+        c = read(io, Char)
+        if c === 'e'
+            dl.endianness == nothing || error("ill formed data layout string")
+            dl.endianness = Ast.LittleEndian()
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout")
+            continue
+        elseif c === 'E'
+            dl.endianness == nothing || error("ill formed data layout string")
+            dl.endianness = Ast.BigEndian()
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout")
+            continue
+        elseif c === 'm'
+            dl.mangling == nothing || error("ill formed data layout string")
+            read(io, Char) === ':' || error("ill formed data layout string")
+            c = read(io, Char)
+            if c === 'e'
+                dl.mangling = Ast.ELFMangling()
+            elseif c === 'm'
+                dl.mangling = Ast.MIPSMangling()
+            elseif c === 'o'
+                dl.mangling = Ast.MachOMangling()
+            elseif c === 'w'
+                dl.mangling = Ast.WindowsCOFFMangling()
+            end 
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            continue
+        elseif c === 'S'
+            dl.stackalignment == nothing || error("ill formed data layout string")
+            dl.stackalignment = parse_num(io)
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            continue
+        elseif c === 'p'
+            c = read(io, Char)
+            as = 0
+            if isdigit(c)
+                as = int(string(c))
+                c = read(io, Char)
+            end
+            c === ':' || error("ill formed data layout string")
+            t = parse_triple(io)
+            dl.pointerlayouts[Ast.AddrSpace(as)] = t 
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            continue
+        elseif c === 'i'
+            at = Ast.IntegerAlign()
+            (sz, ai) = parse_triple(io)
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            dl.typelayouts[(at, sz)] = ai
+            continue
+        elseif c === 'v'
+            at = Ast.VectorAlign()
+            (sz, ai) = parse_triple(io)
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            dl.typelayouts[(at, sz)] = ai
+            continue
+        elseif c === 'f'
+            at = Ast.FloatAlign()
+            (sz, ai) = parse_triple(io)
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            dl.typelayouts[(at, sz)] = ai
+            continue
+        elseif c === 'a'
+            at = Ast.AggregateAlign()
+            (sz, ai) = parse_triple(io)
+            (eof(io) || read(io, Char) === '-') || error("ill formed data layout string")
+            dl.typelayouts[(at, sz)] = ai 
+            continue
+        elseif c === 'n'
+            dl.nativesizes == nothing || error("ill formed data layout string")
+            ns = Set{Int}()
+            while true
+                push!(ns, parse_num(io))
+                eof(io) && break
+                read(io, Char) === ':' || error("ill formed data layout string") 
+            end
+            dl.nativesizes = ns
+            eof(io) || error("ill formed data layout string")
+        end
+    end
+    return dl
+end
+
+parse_datalayout(io::IO) = begin
+    dl = Ast.DataLayout()
+    return parse_spec(io, dl)
+end
+
+parse_datalayout(s::String) = parse_datalayout(IOBuffer(s))

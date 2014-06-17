@@ -1,5 +1,7 @@
 module Ast
 
+import DataStructures
+
 abstract LLVMAstNode 
 
 abstract LLVMLinkage <: LLVMAstNode
@@ -890,10 +892,10 @@ immutable MachOMangling <: Mangling end
 immutable WindowsCOFFMangling <: Mangling end
 
 typealias PointerLayoutMap Associative{AddrSpace, (Int, AlignmentInfo)}
-typealias PointerLayoutDict Dict{AddrSpace, (Int, AlignmentInfo)}
+typealias PointerLayoutDict DataStructures.OrderedDict{AddrSpace, (Int, AlignmentInfo)}
 
 typealias TypeLayoutMap Associative{(AlignType, Int), AlignmentInfo}
-typealias TypeLayoutDict Dict{(AlignType, Int), AlignmentInfo}
+typealias TypeLayoutDict DataStructures.OrderedDict{(AlignType, Int), AlignmentInfo}
 
 # description of various data layout properties which may be used during optimization
 type DataLayout
@@ -904,7 +906,6 @@ type DataLayout
     typelayouts::TypeLayoutMap
     nativesizes::Union(Nothing, Set{Int})
 end
-
 
 DataLayout(;endianness=nothing, 
             mangling=nothing, 

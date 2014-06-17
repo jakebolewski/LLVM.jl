@@ -1,34 +1,46 @@
 using LLVM.Ast
 using Base.Test
 using FactCheck 
+
 using DataStructures
 
 facts("Data Layout") do
     context("litle-endian") do
-        @fact string(Ast.DataLayout(endianness=Ast.LittleEndian())) => "e"
+        str = "e"
+        @fact string(Ast.DataLayout(endianness=Ast.LittleEndian())) => str
+        @fact string(LLVM.parse_datalayout(str)) => str
     end
     
     context("big-endian") do
-       @fact string(Ast.DataLayout(endianness=Ast.BigEndian())) => "E"
+        str = "E"
+        @fact string(Ast.DataLayout(endianness=Ast.BigEndian())) => str
+        @fact string(LLVM.parse_datalayout(str)) => str
     end
 
     context("native") do
-        @fact string(Ast.DataLayout(nativesizes=Set(8,32))) => "n8:32"
+        str = "n8:32"
+        @fact string(Ast.DataLayout(nativesizes=Set(8,32))) => str 
+        @fact string(LLVM.parse_datalayout(str)) => str 
     end
 
     context("pointerlayouts") do 
+        str = "p:8:64"
         as = Ast.AddrSpace(0)
         ai = Ast.AlignmentInfo(64, nothing)
-        @fact string(Ast.DataLayout(pointerlayouts=[as=>(8, ai)])) => "p:8:64"
+        @fact string(Ast.DataLayout(pointerlayouts=[as=>(8, ai)])) => str
+        @fact string(LLVM.parse_datalayout(str)) => str
     end
   
     context("pointerlayouts") do
+        str = "p1:8:32:64"
         as = Ast.AddrSpace(1)
         ai = Ast.AlignmentInfo(32, 64)
-        @fact string(Ast.DataLayout(pointerlayouts=[as=>(8, ai)])) => "p1:8:32:64"
+        @fact string(Ast.DataLayout(pointerlayouts=[as=>(8, ai)])) => str
+        @fact string(LLVM.parse_datalayout(str)) => str
     end
 
     context("big") do
+        str = "e-m:e-S128-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-v64:64:64-v128:128:128-f32:32:32-f64:64:64-f80:128:128-a0:0:64-n8:16:32:64"
         dl = Ast.DataLayout(
                 endianness=Ast.LittleEndian(),
                 mangling=Ast.ELFMangling(),
@@ -47,6 +59,7 @@ facts("Data Layout") do
                               ((Ast.FloatAlign(),   80), Ast.AlignmentInfo(128, 128)),
                               ((Ast.AggregateAlign(),0), Ast.AlignmentInfo(0, 64))]),
                 nativesizes=Set(8,16,32,64))
-        @fact string(dl) => "e-m:e-S128-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-v64:64:64-v128:128:128-f32:32:32-f64:64:64-f80:128:128-a0:0:64-n8:16:32:64"
+        @fact string(dl) => str
+        @fact string(LLVM.parse_datalayout(str)) => str
     end
 end 
