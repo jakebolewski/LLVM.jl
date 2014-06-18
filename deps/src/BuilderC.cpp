@@ -1,11 +1,10 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
 
 #include "llvm-c/Core.h"
 
-#include "LLVM/General/Internal/FFI/Instruction.h"
-#include "LLVM/General/Internal/FFI/BinaryOperator.h"
+#include "Instruction.h"
+#include "BinaryOperator.h"
 
 using namespace llvm;
 

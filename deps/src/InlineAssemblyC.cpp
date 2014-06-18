@@ -1,9 +1,9 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/IR/Function.h"
+
 #include "llvm-c/Core.h"
 
-#include "LLVM/General/Internal/FFI/InlineAssembly.h"
+#include "InlineAssembly.h"
 
 using namespace llvm;
 

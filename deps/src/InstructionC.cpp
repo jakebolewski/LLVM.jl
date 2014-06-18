@@ -1,4 +1,3 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/InstrTypes.h"
@@ -10,7 +9,7 @@
 
 #include "llvm-c/Core.h"
 
-#include "LLVM/General/Internal/FFI/Instruction.h"
+#include "Instruction.h"
 
 using namespace llvm;
 

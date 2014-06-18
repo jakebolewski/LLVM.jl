@@ -1,5 +1,5 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/IR/LLVMContext.h"
+
 #include "llvm-c/ExecutionEngine.h"
 
 using namespace llvm;

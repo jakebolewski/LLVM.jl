@@ -1,4 +1,3 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/Function.h"

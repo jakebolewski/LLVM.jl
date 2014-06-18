@@ -1,4 +1,3 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/Support/CommandLine.h"
 
 using namespace llvm;

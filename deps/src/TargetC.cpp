@@ -1,4 +1,3 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/Host.h"
@@ -10,11 +9,13 @@
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Module.h"
+
 #include "llvm-c/Target.h"
 #include "llvm-c/TargetMachine.h"
 #include "llvm-c/Core.h"
-#include "LLVM/General/Internal/FFI/Target.h"
-#include "LLVM/General/Internal/FFI/LibFunc.h"
+
+#include "Target.h"
+#include "LibFunc.h"
 
 using namespace llvm;
 

@@ -1,11 +1,10 @@
-#define __STDC_LIMIT_MACROS
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/LLVMContext.h"
 
 #include "llvm/Support/SourceMgr.h"
 #include "llvm-c/Core.h"
 
-#include "LLVM/General/Internal/FFI/SMDiagnostic.h"
+#include "SMDiagnostic.h"
 
 using namespace llvm;
 
