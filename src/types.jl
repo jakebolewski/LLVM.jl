@@ -254,10 +254,20 @@ baremodule AtomicRMWBinOpEnum
     u_min = 10  # sets the value if its less than the original using a unsigned comparison
 end
 
-baremodule FastMathFlagsEnum
-    UnsafeAlgebra   = (1 << 0),
-    NoNaNs          = (1 << 1),
-    NoInfs          = (1 << 2),
-    NoSignedZeros   = (1 << 3),
-    AllowReciprocal = (1 << 4)
+abstract FastMathFlags 
+let 
+    fm_flags_enum  = :(baremodule FastMathFlagsEnum 
+                      end)
+    fm_flags_block = fm_flags_enum.args[end].args
+    for (n, ty) in enumerate([:UnsafeAlgebra, :NoNaNs, :NoInfs, 
+                              :NoSignedZeros, :AllowReciprocal])
+        bitpattern = int32(1) << int32(n - 1)
+        push!(fm_flags_block, :($ty = $bitpattern)) 
+        @eval begin 
+            immutable $ty <: FastMathFlags
+            end
+            ast_to_llvm(n::$ty) = $bitpattern  
+        end
+    end
+    @eval $fm_flags_enum
 end
