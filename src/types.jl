@@ -366,3 +366,29 @@ let
     end
     @eval $enum
 end
+
+baremodule ValueSubclassIDEnum
+    Argument = int32(0)
+    BasicBlock = int32(1)
+    Function = int32(2)
+    GlobalAlias = int32(3)
+    GlobalVariable = int32(4)
+    UndefValue = int32(5)
+    BlockAddress = int32(6)
+    ConstantExpr = int32(7)
+    ConstantAggregateZero = int32(8)
+    ConstantDataArray = int32(9)
+    ConstantDataVector = int32(10)
+    ConstantInt = int32(11)
+    ConstantFP = int32(12)
+    ConstantArray = int32(13)
+    ConstantStruct = int32(14)
+    ConstantVector = int32(15)
+    ConstantPointerNull = int32(16)
+    MDNode = int32(17)
+    MDString = int32(18)
+    InlineAsm = int32(19)
+    PseudoSourceValue = int32(20)
+    FixedStackPseudoSourceValue = int32(21)
+    Instruction = int32(22)
+end
