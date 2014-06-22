@@ -275,7 +275,8 @@ let
     @eval $enum
 end
 
-abstract MemoryOrdering
+abstract AtomicOrdering
+typealias MemoryOrdering AtomicOrdering
 let
     enum = :(baremodule AtomicOrderingEnum
              end)
@@ -290,7 +291,39 @@ let
         val = int32(n-1) 
         push!(block, :($ty = $val)) 
         @eval begin 
-            immutable $ty <: MemoryOrdering
+            immutable $ty <: AtomicOrdering 
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
+
+abstract LinkageType 
+let
+    enum = :(baremodule LinkageTypesEnum  
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:ExternalLinkage,
+                              :AvailableExternallyLinkage,
+                              :LinkOnceAnyLinkage,
+                              :LinkOnceODRLinkage,
+                              :LinkOnceODRAutoHideLinkage,
+                              :WeakAnyLinkage,
+                              :WeakODRLinkage,
+                              :AppendingLinkage,
+                              :InternalLinkage,
+                              :PrivateLinkage,
+                              :LinkerPrivateLinkage,
+                              :LinkerPrivateWeakLinkage,
+                              :DLLImportLinkage,
+                              :DLLExportLinkage,
+                              :ExternalWeakLinkage,
+                              :CommonLinkage])
+        val = int32(n-1) 
+        push!(block, :($ty = $val)) 
+        @eval begin 
+            immutable $ty <: LinkageType 
             end
             ast_to_llvm(n::$ty) = int32($val) 
         end
