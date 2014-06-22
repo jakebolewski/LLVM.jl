@@ -8,18 +8,6 @@ typealias FailureAction Ptr{Void}
 # TODO: LLVM CTypes
 typealias LLVMBool Cuint
 
-abstract LLVMType
-
-immutable LLVMInteger
-    ptr::Ptr{Void}
-end
-
-LLVMType{T<:LLVMType}(::Type{T}, ptr::Ptr{Void}) = return T(ptr)
-
-LLVMInteger(ptr::Ptr{Void}) = begin
-    @assert ptr != C_NULL
-end 
-
 #------------------------------------------------------------------------------
 # Analysis 
 #------------------------------------------------------------------------------
