@@ -8,6 +8,7 @@ for ty in [:ModulePtr, :TypePtr, :ValuePtr, :BasicBlockPtr, :BuilderPtr,
         end
 
         pointer(ptr::$ty) = ptr.ptr
+        convert(::Type{Ptr{Void}}, ptr::$ty) = pointer(ptr)
     end
 end
 
