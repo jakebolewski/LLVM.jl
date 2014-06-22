@@ -368,6 +368,8 @@ let
 end
 
 baremodule ValueSubclassIDEnum
+    import Base.int32
+
     Argument = int32(0)
     BasicBlock = int32(1)
     Function = int32(2)
@@ -391,4 +393,30 @@ baremodule ValueSubclassIDEnum
     PseudoSourceValue = int32(20)
     FixedStackPseudoSourceValue = int32(21)
     Instruction = int32(22)
+end
+
+baremodule DiagnosticKindEnum
+    import Base.int32
+
+    Error   = int32(0)
+    Warning = int32(1)
+    Note    = int32(2)
+end
+
+abstract AsmDialect 
+let
+    enum = :(baremodule AsmDialectEnum
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:ATTDialect, :IntelDialect])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: AsmDialect
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
 end
