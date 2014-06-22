@@ -21,7 +21,7 @@ baremodule TypeKindEnum
     ppc_fp128 = 6   # 128 bit floating point type (two 64 bits)
     label     = 7   # labels
     integer   = 8   # arbitrary bit width integers
-    function_  = 9   # functions
+    function_ = 9   # functions
     struct    = 10  # structures
     array     = 11  # arrays
     pointer   = 12  # pointers
@@ -92,110 +92,48 @@ baremodule OpcodeEnum
     landing_pad = 59
 end
 
-# === Options:
-# :external ::
-#   
-# :available_externally ::
-#   < Externally visible function
-# :link_once_any ::
-#   
-# :link_once_odr ::
-#   < Keep one copy of function when linking (inline)
-# :link_once_odr_auto_hide ::
-#   < Same, but only replaced by something
-#                               equivalent.
-# :weak_any ::
-#   < Obsolete
-# :weak_odr ::
-#   < Keep one copy of function when linking (weak)
-# :appending ::
-#   < Same, but only replaced by something
-#                               equivalent.
-# :internal ::
-#   < Special purpose, only applies to global arrays
-# :private ::
-#   < Rename collisions when linking (static
-#                                  functions)
-# :dll_import ::
-#   < Like Internal, but omit from symbol table
-# :dll_export ::
-#   < Function to be imported from DLL
-# :external_weak ::
-#   < Function to be accessible from DLL
-# :ghost ::
-#   < ExternalWeak linkage description
-# :common ::
-#   < Obsolete
-# :linker_private ::
-#   < Tentative definitions
-# :linker_private_weak ::
-#   < Like Private, but linker removes.
-# 
+
 baremodule LinkageEnum 
-    external = 0
-    available_externally = 1
-    link_once_any = 2
-    link_once_odr = 3
+    # Externally visible function
+    external = 0  
+    available_externally = 1 
+    # Keep one copy of function when linking (inline)
+    link_once_any = 2 
+    # Same, but only replaced by something equivalent.
+    link_once_odr = 3 
     link_once_odr_auto_hide = 4
+    # Keep one copy of function when linking (weak)
     weak_any = 5
+    # Same, but only replaced by something equivalent.
     weak_odr = 6
+    # Special purpose, only applies to global arrays 
     appending = 7
+    # Rename collisions when linking (static functions)
     internal = 8
+    # Like Internal, but omit from symbol table
     private = 9
+    # Function to be imported from DLL
     dll_import = 10
+    # Function to be accessible from DLL
     dll_export = 11
+    # ExternalWeak linkage description
     external_weak = 12
     ghost = 13
+    # Tentative definitions
     common = 14
+    # Like Private, but linker removes
     linker_private = 15
     linker_private_weak = 16
 end
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:visibility).</em>
-# 
-# === Options:
-# :default ::
-#   
-# :hidden ::
-#   < The GV is visible
-# :protected ::
-#   < The GV is hidden
-# 
-# @method _enum_visibility_
-# @return [Symbol]
-# @scope class
+
 baremodule VisibilityEnum
-    default   = 0
-    hidden    = 1
-    protected = 2
+    default   = 0  # the GV is visible
+    hidden    = 1  # the GV is hidden
+    protected = 2  # the GV is protected
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:call_conv).</em>
-# 
-# === Options:
-# :c ::
-#   
-# :fast ::
-#   
-# :cold ::
-#   
-# :web_kit_js ::
-#   
-# :any_reg ::
-#   
-# :x86_stdcall ::
-#   
-# :x86_fastcall ::
-#   
-# 
-# @method _enum_call_conv_
-# @return [Symbol]
-# @scope class
 baremodule CallCovEnum
-    c = 0
+    c    = 0
     fast = 8
     cold = 9
     web_kit_js = 12
@@ -204,145 +142,43 @@ baremodule CallCovEnum
     x86_fastcall = 65
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:int_predicate).</em>
-# 
-# === Options:
-# :eq ::
-#   
-# :ne ::
-#   < equal
-# :ugt ::
-#   < not equal
-# :uge ::
-#   < unsigned greater than
-# :ult ::
-#   < unsigned greater or equal
-# :ule ::
-#   < unsigned less than
-# :sgt ::
-#   < unsigned less or equal
-# :sge ::
-#   < signed greater than
-# :slt ::
-#   < signed greater or equal
-# :sle ::
-#   < signed less than
-# 
-# @method _enum_int_predicate_
-# @return [Symbol]
-# @scope class
 baremodule IntPredicateEnum
-    eq = 32
-    ne = 33
-    ugt = 34
-    uge = 35
-    ult = 36
-    ule = 37
-    sgt = 38
-    sge = 39
-    slt = 40
-    sle = 41
+    eq  = 32    # equal
+    ne  = 33    # not equal
+    ugt = 34    # unsigned greater than 
+    uge = 35    # unsigned greater than or equal
+    ult = 36    # unsinged less than
+    ule = 37    # unsigned less than or equal
+    sgt = 38    # signed greater than
+    sge = 39    # signed greater than or equal
+    slt = 40    # signed less than
+    sle = 41    # signed less than or equal
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:real_predicate).</em>
-# 
-# === Options:
-# :predicate_false ::
-#   
-# :oeq ::
-#   < Always false (always folded)
-# :ogt ::
-#   < True if ordered and equal
-# :oge ::
-#   < True if ordered and greater than
-# :olt ::
-#   < True if ordered and greater than or equal
-# :ole ::
-#   < True if ordered and less than
-# :one ::
-#   < True if ordered and less than or equal
-# :ord ::
-#   < True if ordered and operands are unequal
-# :uno ::
-#   < True if ordered (no nans)
-# :ueq ::
-#   < True if unordered: isnan(X) | isnan(Y)
-# :ugt ::
-#   < True if unordered or equal
-# :uge ::
-#   < True if unordered or greater than
-# :ult ::
-#   < True if unordered, greater than, or equal
-# :ule ::
-#   < True if unordered or less than
-# :une ::
-#   < True if unordered, less than, or equal
-# :predicate_true ::
-#   < True if unordered or not equal
-# 
-# @method _enum_real_predicate_
-# @return [Symbol]
-# @scope class
 baremodule RealPredicateEnum
-    predicate_false =  0
-    oeq =  1
-    ogt =  2
-    oge =  3
-    olt =  4
-    ole =  5
-    one =  6
-    ord =  7
-    uno =  8
-    ueq =  9
-    ugt = 10
-    uge = 11
-    ult = 12
-    ule = 13
-    une = 14
-    predicate_true = 15
+    predicate_false =  0  # Always false (always folded)
+    oeq =  1    # True if ordered and equal
+    ogt =  2    # True if ordered and greater than     
+    oge =  3    # True if ordered and greater than or equal
+    olt =  4    # True if ordered and less than
+    ole =  5    # True if ordered and less than or equal
+    one =  6    # True if ordered and operands are unequal
+    ord =  7    # True if ordered (no nans)
+    uno =  8    # True if unordered: isnan(X) | isnan(Y)
+    ueq =  9    # True if unordered or equal
+    ugt = 10    # True if unordered or greater than
+    uge = 11    # True if unordered, greater than, or equal
+    ult = 12    # True if unordered or less than
+    ule = 13    # True if unordered, less than, or equal
+    une = 14    # True if unordered or not equal
+    predicate_true = 15 # Always true (never folded)
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:landing_pad_clause_ty).</em>
-# 
-# === Options:
-# :catch ::
-#   
-# :filter ::
-#   < A catch clause  
-# 
-# @method _enum_landing_pad_clause_ty_
-# @return [Symbol]
-# @scope class
 baremodule LandingPadClauseTyEnum
     catch_  = 0
     filter = 1
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:thread_local_mode).</em>
-# 
-# === Options:
-# :not_thread_local ::
-#   
-# :general_dynamic_tls_model ::
-#   
-# :local_dynamic_tls_model ::
-#   
-# :initial_exec_tls_model ::
-#   
-# :local_exec_tls_model ::
-#   
-# 
-# @method _enum_thread_local_mode_
-# @return [Symbol]
-# @scope class
 baremodule ThreadLocalModeEnum
     not_thread_local = 0
     general_dynamic_tls_mode = 1
@@ -351,90 +187,40 @@ baremodule ThreadLocalModeEnum
     local_exec_tls_model = 4
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:atomic_ordering).</em>
-# 
-# === Options:
-# :not_atomic ::
-#   
-# :unordered ::
-#   < A load or store which is not atomic
-# :monotonic ::
-#   < Lowest level of atomicity, guarantees
-#                                        somewhat sane results, lock free.
-# :acquire ::
-#   < guarantees that if you take all the
-#                                        operations affecting a specific address,
-#                                        a consistent ordering exists
-# :release ::
-#   < Acquire provides a barrier of the sort
-#                                      necessary to acquire a lock to access other
-#                                      memory with normal loads and stores.
-# :acquire_release ::
-#   < Release is similar to Acquire, but with
-#                                      a barrier of the sort necessary to release
-#                                      a lock.
-# 
-# @method _enum_atomic_ordering_
-# @return [Symbol]
-# @scope class
 baremodule AtomicOrderingEnum
+
+    # load or store which is not atomic
     not_atomic = 0
+
+    # lowest level of atomicity, guarantees somewhat sane results, lock free 
     unordered = 1
-    monotonic = 2
-    acquire = 4
-    release = 5
+
+    # guarantees that if you take all the operations affecting a specific addr
+    # a constant ordering exists
+    monotonic = 2       
+    
+    # acquire provides a barrier of the sort necessary to acquire a lock to
+    # access other memory
+    acquire = 4 
+
+    # release is similar to acquire, but with a barrier of the sort necessary to
+    # release a lock
+    release = 5 
+
+    #TODO:
     acquire_release = 6
 end
 
-# (Not documented)
-# 
-# <em>This entry is only for documentation and no real method. The FFI::Enum can be accessed via #enum_type(:atomic_rmw_bin_op).</em>
-# 
-# === Options:
-# :xchg ::
-#   
-# :add ::
-#   < Set the new value and return the one old
-# :sub ::
-#   < Add a value and return the old one
-# :and_ ::
-#   < Subtract a value and return the old one
-# :nand ::
-#   < And a value and return the old one
-# :or_ ::
-#   < Not-And a value and return the old one
-# :xor ::
-#   < OR a value and return the old one
-# :max ::
-#   < Xor a value and return the old one
-# :min ::
-#   < Sets the value if it's greater than the
-#                                original using a signed comparison and return
-#                                the old one
-# :u_max ::
-#   < Sets the value if it's Smaller than the
-#                                original using a signed comparison and return
-#                                the old one
-# :u_min ::
-#   < Sets the value if it's greater than the
-#                                original using an unsigned comparison and return
-#                                the old one
-# 
-# @method _enum_atomic_rmw_bin_op_
-# @return [Symbol]
-# @scope class
 baremodule AtomicRMWBinOpEnum
-    xchg = 0
-    add = 1
-    sub = 2
-    and = 3
-    nand = 4
-    or = 5
-    xor = 6
-    max = 7
-    min = 8
-    u_max = 9
-    u_min = 10
+    xchg  = 0   # set the new value and return the old one
+    add   = 1   # add a value and return the old one
+    sub   = 2   # subtract a value and return the old one
+    and   = 3   # and a value and return the old one
+    nand  = 4   # not-and a value and return the old one
+    or    = 5   # or a value and return the old one
+    xor   = 6   # xor a value and return the old one
+    max   = 7   # sets the value if its greater than the original using a signed comparison
+    min   = 8   # sets the value if its less than the original using a signed comparison
+    u_max = 9   # sets the value if its greater than the original using a unsigned comparison 
+    u_min = 10  # sets the value if its less than the original using a unsigned comparison
 end
