@@ -425,3 +425,31 @@ let
     end
     @eval $enum
 end
+
+abstract AtomicRMWOp
+let
+    enum = :(baremodule RMWOperationEnum
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:Xchg,
+                              :Add,
+                              :Sub,
+                              :And,
+                              :Nand,
+                              :Or,
+                              :Xor,
+                              :Max,
+                              :Min,
+                              :UMax,
+                              :UMin])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: AtomicRMWOp
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
