@@ -257,6 +257,7 @@ end
 abstract FastMathFlags 
 let 
     enum  = :(baremodule FastMathFlagsEnum 
+                import Base.int32
               end)
     block = enum.args[end].args
     for (n, ty) in enumerate([:UnsafeAlgebra, 
@@ -265,7 +266,7 @@ let
                               :NoSignedZeros,
                               :AllowReciprocal])
         bitpattern = int32(1) << int32(n - 1)
-        push!(block, :($ty = $bitpattern)) 
+        push!(block, :($ty = int32($bitpattern))) 
         @eval begin 
             immutable $ty <: FastMathFlags
             end
@@ -279,6 +280,7 @@ abstract AtomicOrdering
 typealias MemoryOrdering AtomicOrdering
 let
     enum = :(baremodule AtomicOrderingEnum
+                import Base.int32
              end)
     block = enum.args[end].args
     for (n, ty) in enumerate([:NotAtomic, 
@@ -289,7 +291,7 @@ let
                               :AcquireRelease,
                               :SequentiallyConsistent])
         val = int32(n-1) 
-        push!(block, :($ty = $val)) 
+        push!(block, :($ty = int32($val))) 
         @eval begin 
             immutable $ty <: AtomicOrdering 
             end
@@ -301,7 +303,8 @@ end
 
 abstract LinkageType
 let
-    enum = :(baremodule LinkageTypesEnum  
+    enum = :(baremodule LinkageTypesEnum
+                import Base.int32
              end)
     block = enum.args[end].args
     for (n, ty) in enumerate([:ExternalLinkage,
@@ -321,7 +324,7 @@ let
                               :ExternalWeakLinkage,
                               :CommonLinkage])
         val = int32(n-1) 
-        push!(block, :($ty = $val)) 
+        push!(block, :($ty = int32($val))) 
         @eval begin 
             immutable $ty <: LinkageType
             end
@@ -334,11 +337,12 @@ end
 abstract VisibilityType
 let
     enum = :(baremodule VisibilityTypesEnum
+                import Base.int32
              end)
     block = enum.args[end].args
     for (n, ty) in enumerate([:DefaultVisibility, :HiddenVisibility, :ProtectedVisibility])
         val = int32(n-1) 
-        push!(block, :($ty = $val)) 
+        push!(block, :($ty = int32($val))) 
         @eval begin 
             immutable $ty <: VisibilityType
             end
@@ -351,13 +355,14 @@ end
 abstract CallConv
 let
     enum = :(baremodule CallConvEnum
+                import Base.int32
              end)
     block = enum.args[end].args
     for (n, cc) in enumerate([(:CCall,0),
                               (:FastCall,8),
                               (:ColdCall,9)])
         ty, val = cc
-        push!(block, :($ty = $val)) 
+        push!(block, :($ty = int32($val))) 
         @eval begin 
             immutable $ty <: CallConv
             end
