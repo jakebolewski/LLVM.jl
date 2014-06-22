@@ -1,7 +1,24 @@
 module FFI
 
+import ..libllvm, ..libllvmgeneral
+
 typealias ModulePtrPtr{Void}
 typealias FailureAction Ptr{Void}
+
+# TODO: LLVM CTypes
+typealias LLVMBool Cuint
+
+abstract LLVMType
+
+immutable LLVMInteger
+    ptr::Ptr{Void}
+end
+
+LLVMType{T<:LLVMType}(::Type{T}, ptr::Ptr{Void}) = return T(ptr)
+
+LLVMInteger(ptr::Ptr{Void}) = begin
+    @assert ptr != C_NULL
+end 
 
 #------------------------------------------------------------------------------
 # Analysis 
@@ -327,12 +344,15 @@ function get_ptr_to_global()
 end
 
 function link_in_interpreter()
+    ccall((:LLVMLinkInInterpreter, libllvm), Void, ())
 end
 
 function link_in_jit()
+    ccall((:LLVMLinkInJIT, libllvm), Void, ())
 end
 
 function link_in_mcjit()
+    ccall((:LLVMLinkInMCJIT, libllvm), Void, ())
 end 
 
 function get_mcjit_compiler_opts_size()
@@ -696,7 +716,11 @@ end
 #------------------------------------------------------------------------------
 # Module 
 #------------------------------------------------------------------------------
-function module_create_with_name_in_ctx()
+function create_module_with_name_in_ctx()
+end
+
+function create_module_with_name(name::String)
+    return ccall((:LLVMModuleCreateWithName, libllvm), Ptr{Void}, (Ptr{Uint8},), name)
 end
 
 function get_module_ctx()
@@ -881,6 +905,7 @@ end
 #------------------------------------------------------------------------------
 
 function init_native_target()
+    return bool(ccall((:LLVM_General_InitializeNativeTarget, libllvmgeneral), LLVMBool, ()))
 end
 
 function lookup_target()
