@@ -81,8 +81,8 @@ baremodule OpcodeEnum
     shl = 20
     l_shr = 21
     a_shr = 22
-    and_ = 23
-    or_ = 24
+    and = 23
+    or = 24
     xor = 25
     alloca = 26
     load  = 27
