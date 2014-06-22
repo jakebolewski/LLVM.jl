@@ -162,7 +162,7 @@ baremodule VisibilityEnum
 end
 
 baremodule CallCovEnum
-    c    = 0
+    c = 0
     fast = 8
     cold = 9
     web_kit_js = 12
