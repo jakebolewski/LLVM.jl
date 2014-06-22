@@ -453,3 +453,13 @@ let
     end
     @eval $enum
 end
+
+baremodule RelocModelEnum
+    import Base.int
+
+    Default = int32(0)
+    Static  = int32(1)
+    PIC     = int32(2)
+    DynamicNoPIC = int32(3)
+end
+
