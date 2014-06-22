@@ -256,18 +256,44 @@ end
 
 abstract FastMathFlags 
 let 
-    fm_flags_enum  = :(baremodule FastMathFlagsEnum 
-                      end)
-    fm_flags_block = fm_flags_enum.args[end].args
-    for (n, ty) in enumerate([:UnsafeAlgebra, :NoNaNs, :NoInfs, 
-                              :NoSignedZeros, :AllowReciprocal])
+    enum  = :(baremodule FastMathFlagsEnum 
+              end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:UnsafeAlgebra, 
+                              :NoNaNs,
+                              :NoInfs, 
+                              :NoSignedZeros,
+                              :AllowReciprocal])
         bitpattern = int32(1) << int32(n - 1)
-        push!(fm_flags_block, :($ty = $bitpattern)) 
+        push!(block, :($ty = $bitpattern)) 
         @eval begin 
             immutable $ty <: FastMathFlags
             end
-            ast_to_llvm(n::$ty) = $bitpattern  
+            ast_to_llvm(n::$ty) = int32($bitpattern)  
         end
     end
-    @eval $fm_flags_enum
+    @eval $enum
+end
+
+abstract MemoryOrdering
+let
+    enum = :(baremodule AtomicOrderingEnum
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:NotAtomic, 
+                              :Unordered,
+                              :Monotonic,
+                              :Acquire,
+                              :Release,
+                              :AcquireRelease,
+                              :SequentiallyConsistent])
+        val = int32(n-1) 
+        push!(block, :($ty = $val)) 
+        @eval begin 
+            immutable $ty <: MemoryOrdering
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
 end
