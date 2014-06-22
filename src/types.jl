@@ -253,3 +253,11 @@ baremodule AtomicRMWBinOpEnum
     u_max = 9   # sets the value if its greater than the original using a unsigned comparison 
     u_min = 10  # sets the value if its less than the original using a unsigned comparison
 end
+
+baremodule FastMathFlagsEnum
+    UnsafeAlgebra   = (1 << 0),
+    NoNaNs          = (1 << 1),
+    NoInfs          = (1 << 2),
+    NoSignedZeros   = (1 << 3),
+    AllowReciprocal = (1 << 4)
+end
