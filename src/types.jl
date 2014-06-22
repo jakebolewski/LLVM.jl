@@ -12,6 +12,34 @@ for ty in [:ModulePtr, :TypePtr, :ValuePtr, :BasicBlockPtr, :BuilderPtr,
     end
 end
 
+baremodule AttributeEnum
+    z_ext_attribute = 1
+    s_ext_attribute = 2
+    no_return_attribute = 4
+    in_reg_attribute = 8
+    struct_ret_attribute = 16
+    no_unwind_attribute = 32
+    no_alias_attribute = 64
+    by_val_attribute = 128
+    nest_attribute = 256
+    read_none_attribute = 512
+    read_only_attribute = 1024
+    no_inline_attribute = 2048
+    always_inline_attribute = 4096
+    optimize_for_size_attribute = 8192
+    stack_protect_attribute = 16384
+    stack_protect_req_attribute = 32768
+    alignment = 2031616
+    no_capture_attribute = 2097152
+    no_red_zone_attribute = 4194304
+    no_implicit_float_attribute = 8388608
+    naked_attribute = 16777216
+    inline_hint_attribute = 33554432
+    stack_alignment = 469762048
+    returns_twice = 536870912
+    uw_table = 1073741824
+end
+
 baremodule TypeKindEnum
     void      = 0   # type with no size
     half      = 1   # 16 bit floating point type
