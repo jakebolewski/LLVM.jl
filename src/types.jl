@@ -299,7 +299,7 @@ let
     @eval $enum
 end
 
-abstract LinkageType 
+abstract LinkageType
 let
     enum = :(baremodule LinkageTypesEnum  
              end)
@@ -323,7 +323,43 @@ let
         val = int32(n-1) 
         push!(block, :($ty = $val)) 
         @eval begin 
-            immutable $ty <: LinkageType 
+            immutable $ty <: LinkageType
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
+
+abstract VisibilityType
+let
+    enum = :(baremodule VisibilityTypesEnum
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:DefaultVisibility, :HiddenVisibility, :ProtectedVisibility])
+        val = int32(n-1) 
+        push!(block, :($ty = $val)) 
+        @eval begin 
+            immutable $ty <: VisibilityType
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
+
+abstract CallConv
+let
+    enum = :(baremodule CallConvEnum
+             end)
+    block = enum.args[end].args
+    for (n, cc) in enumerate([(:CCall,0),
+                              (:FastCall,8),
+                              (:ColdCall,9)])
+        ty, val = cc
+        push!(block, :($ty = $val)) 
+        @eval begin 
+            immutable $ty <: CallConv
             end
             ast_to_llvm(n::$ty) = int32($val) 
         end
