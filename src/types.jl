@@ -332,11 +332,11 @@ baremodule DiagnosticKindEnum
     Note    = int32(2)
 end
 
-function llvm_enum(abstract_type::Symbol, types::Vector{Symbol})
-    enum_name = string(abstract_type, "Enum")
-    abst_name = string(abstract_type)
+function llvm_enum(abstyp::DataType, types::Vector{Symbol})
+    @assert abstyp.abstract
+    enum_name = string(abstyp, "Enum")
+    abst_name = string(abstyp)
     return :(
-    abstract $abstract_type;
     let
         block = Expr(:block, Expr(:import, :Base, :int32)) 
         enum  = Expr(:module, false, symbol($enum_name), block) 
@@ -351,16 +351,16 @@ function llvm_enum(abstract_type::Symbol, types::Vector{Symbol})
     end)
 end
 
-@eval begin
-    llvm_enum(:AtomicOrdering, [:NotAtomic, 
+abstract AtomicOrdering
+eval(llvm_enum(AtomicOrdering, [:NotAtomic, 
                                 :Unordered,
                                 :Monotonic,
                                 :Acquire,
                                 :Release,
                                 :AcquireRelease,
-                                :SequentiallyConsistent])
-
-    llvm_enum(:LinkageType, [:ExternalLinkage,
+                                :SequentiallyConsistent]))
+abstract LinkageType
+eval(llvm_enum(LinkageType, [:ExternalLinkage,
                              :AvailableExternallyLinkage,
                              :LinkOnceAnyLinkage,
                              :LinkOnceODRLinkage,
@@ -375,35 +375,36 @@ end
                              :DLLImportLinkage,
                              :DLLExportLinkage,
                              :ExternalWeakLinkage,
-                             :CommonLinkage])
-
-    llvm_enum(:VisibilityType, [:DefaultVisibility,
+                             :CommonLinkage]))
+abstract VisibilityType
+eval(llvm_enum(VisibilityType, [:DefaultVisibility,
                                 :HiddenVisibility,
-                                :ProtectedVisibility])
+                                :ProtectedVisibility]))
 
-    llmv_enum(:AsmDialect, [:ATTDialect, :IntelDialect])
+abstract AsmDialect
+llvm_enum(AsmDialect, [:ATTDialect, :IntelDialect])
 
-    llvm_enum(:AtomicRMWOp, [:Xchg, :Add, :Sub, :And,
+abstract AtomicRMWOp
+eval(llvm_enum(AtomicRMWOp, [:Xchg, :Add, :Sub, :And,
                              :Nand, :Or, :Xor, :Max, :Min,
-                             :UMax, :UMin])
-
-    llvm_enum(:RelocModel, [:RelocDefault,
+                             :UMax, :UMin]))
+abstract RelocModel
+eval(llvm_enum(RelocModel, [:RelocDefault,
                             :RelocStatic,
                             :RelocPIC,
-                            :RelocDynamicNoPIC])
-
-    llvm_enum(:CodeModel, [:CodeModelDefault,
+                            :RelocDynamicNoPIC]))
+abstract CodeModel
+eval(llvm_enum(CodeModel, [:CodeModelDefault,
                            :CodeModelJITDefault,
                            :CodeModelSmall,
                            :CodeModelKernel,
                            :CodeModelMedium,
-                           :CodeModelLarge])
-
-    llvm_enum(:CodeGenOptLevel, [:CodeGenOptLevelNone,
+                           :CodeModelLarge]))
+abstract CodeGenOptLevel
+eval(llvm_enum(CodeGenOptLevel, [:CodeGenOptLevelNone,
                                  :CodeGenOptLevelLess,
                                  :CodeGenOptLevelDefault,
-                                 :CodeGenOptLevelAggressive])
-
-    llvm_enum(:CodeGenFileType, [:CodeGenAssemblyFile, 
-                                 :CodeGenObjectFile])
-end
+                                 :CodeGenOptLevelAggressive]))
+abstract CodeGenFileType
+eval(llvm_enum(CodeGenFileType, [:CodeGenAssemblyFile, 
+                                 :CodeGenObjectFile]))
