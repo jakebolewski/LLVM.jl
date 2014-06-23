@@ -498,4 +498,42 @@ let
     @eval $enum
 end
 
+abstract CodeGenOptLevel 
+let
+    enum = :(baremodule CodeGenOptEnum 
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:CodeGenOptLevelNone,
+                              :CodeGenOptLevelLess,
+                              :CodeGenOptLevelDefault,
+                              :CodeGenOptLevelAggressive])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: CodeGenOptLevel
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
 
+abstract CodeGenFileType
+let
+    enum = :(baremodule CodeGenFileTypeEnum 
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:CodeGenAssemblyFile,
+                              :CodeGenObjectFile])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: CodeGenFileType
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
