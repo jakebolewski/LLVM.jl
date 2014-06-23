@@ -454,12 +454,48 @@ let
     @eval $enum
 end
 
-baremodule RelocModelEnum
-    import Base.int
-
-    Default = int32(0)
-    Static  = int32(1)
-    PIC     = int32(2)
-    DynamicNoPIC = int32(3)
+abstract RelocModel 
+let
+    enum = :(baremodule RelocModelEnum 
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:RelocDefault,
+                              :RelocStatic,
+                              :RelocPIC,
+                              :RelocDynamicNoPIC])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: RelocModel
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
 end
+
+abstract CodeModel
+let
+    enum = :(baremodule CodeModelEnum
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:CodeModelDefault,
+                              :CodeModelJITDefault,
+                              :CodeModelSmall,
+                              :CodeModelKernel,
+                              :CodeModelMedium,
+                              :CodeModelLarge])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: CodeModel
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
+
 
