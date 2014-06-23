@@ -537,3 +537,40 @@ let
     end
     @eval $enum
 end
+
+function gen_enum(abstract_type::Symbol, types::Vector{Symbol})
+    enum_name = string(abstract_type, "Enum")
+    abst_name = string(abstract_type)
+    return :(
+    let
+        block = Expr(:block, Expr(:import, :Base, :int32)) 
+        enum  = Expr(:module, false, symbol($enum_name), block) 
+        for (n, ty) in enumerate($types)
+            val = int32(n-1) 
+            push!(block.args, Expr(:(=), ty, Expr(:call, :int32, val))) 
+            eval(Expr(:type, false, Expr(:(<:), ty, symbol($abst_name)), Expr(:block)))
+            eval(Expr(:(=), Expr(:call, :ast_to_llvm, Expr(:(::), :n, ty)),
+                            Expr(:call, :int32, val)))
+        end
+        eval(enum)
+    end)
+end
+
+abstract CodeGenFileType
+let
+    enum = :(baremodule CodeGenFileTypeEnum 
+                import Base.int32
+             end)
+    block = enum.args[end].args
+    for (n, ty) in enumerate([:CodeGenAssemblyFile,
+                              :CodeGenObjectFile])
+        val = int32(n-1) 
+        push!(block, :($ty = int32($val))) 
+        @eval begin 
+            immutable $ty <: CodeGenFileType
+            end
+            ast_to_llvm(n::$ty) = int32($val) 
+        end
+    end
+    @eval $enum
+end
