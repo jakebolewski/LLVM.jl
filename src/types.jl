@@ -276,82 +276,6 @@ let
     @eval $enum
 end
 
-abstract AtomicOrdering
-typealias MemoryOrdering AtomicOrdering
-let
-    enum = :(baremodule AtomicOrderingEnum
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:NotAtomic, 
-                              :Unordered,
-                              :Monotonic,
-                              :Acquire,
-                              :Release,
-                              :AcquireRelease,
-                              :SequentiallyConsistent])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: AtomicOrdering 
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract LinkageType
-let
-    enum = :(baremodule LinkageTypesEnum
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:ExternalLinkage,
-                              :AvailableExternallyLinkage,
-                              :LinkOnceAnyLinkage,
-                              :LinkOnceODRLinkage,
-                              :LinkOnceODRAutoHideLinkage,
-                              :WeakAnyLinkage,
-                              :WeakODRLinkage,
-                              :AppendingLinkage,
-                              :InternalLinkage,
-                              :PrivateLinkage,
-                              :LinkerPrivateLinkage,
-                              :LinkerPrivateWeakLinkage,
-                              :DLLImportLinkage,
-                              :DLLExportLinkage,
-                              :ExternalWeakLinkage,
-                              :CommonLinkage])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: LinkageType
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract VisibilityType
-let
-    enum = :(baremodule VisibilityTypesEnum
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:DefaultVisibility, :HiddenVisibility, :ProtectedVisibility])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: VisibilityType
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
 abstract CallConv
 let
     enum = :(baremodule CallConvEnum
@@ -408,136 +332,6 @@ baremodule DiagnosticKindEnum
     Note    = int32(2)
 end
 
-abstract AsmDialect 
-let
-    enum = :(baremodule AsmDialectEnum
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:ATTDialect, :IntelDialect])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: AsmDialect
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract AtomicRMWOp
-let
-    enum = :(baremodule RMWOperationEnum
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:Xchg,
-                              :Add,
-                              :Sub,
-                              :And,
-                              :Nand,
-                              :Or,
-                              :Xor,
-                              :Max,
-                              :Min,
-                              :UMax,
-                              :UMin])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: AtomicRMWOp
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract RelocModel 
-let
-    enum = :(baremodule RelocModelEnum 
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:RelocDefault,
-                              :RelocStatic,
-                              :RelocPIC,
-                              :RelocDynamicNoPIC])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: RelocModel
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract CodeModel
-let
-    enum = :(baremodule CodeModelEnum
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:CodeModelDefault,
-                              :CodeModelJITDefault,
-                              :CodeModelSmall,
-                              :CodeModelKernel,
-                              :CodeModelMedium,
-                              :CodeModelLarge])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: CodeModel
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract CodeGenOptLevel 
-let
-    enum = :(baremodule CodeGenOptEnum 
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:CodeGenOptLevelNone,
-                              :CodeGenOptLevelLess,
-                              :CodeGenOptLevelDefault,
-                              :CodeGenOptLevelAggressive])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: CodeGenOptLevel
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
-abstract CodeGenFileType
-let
-    enum = :(baremodule CodeGenFileTypeEnum 
-                import Base.int32
-             end)
-    block = enum.args[end].args
-    for (n, ty) in enumerate([:CodeGenAssemblyFile,
-                              :CodeGenObjectFile])
-        val = int32(n-1) 
-        push!(block, :($ty = int32($val))) 
-        @eval begin 
-            immutable $ty <: CodeGenFileType
-            end
-            ast_to_llvm(n::$ty) = int32($val) 
-        end
-    end
-    @eval $enum
-end
-
 function llvm_enum(abstract_type::Symbol, types::Vector{Symbol})
     enum_name = string(abstract_type, "Enum")
     abst_name = string(abstract_type)
@@ -558,5 +352,58 @@ function llvm_enum(abstract_type::Symbol, types::Vector{Symbol})
 end
 
 @eval begin
-    llvm_enum(:CodeGenFileType, [:CodeGenAssemblyFile, :CodeGenObjectFile])
+    llvm_enum(:AtomicOrdering, [:NotAtomic, 
+                                :Unordered,
+                                :Monotonic,
+                                :Acquire,
+                                :Release,
+                                :AcquireRelease,
+                                :SequentiallyConsistent])
+
+    llvm_enum(:LinkageType, [:ExternalLinkage,
+                             :AvailableExternallyLinkage,
+                             :LinkOnceAnyLinkage,
+                             :LinkOnceODRLinkage,
+                             :LinkOnceODRAutoHideLinkage,
+                             :WeakAnyLinkage,
+                             :WeakODRLinkage,
+                             :AppendingLinkage,
+                             :InternalLinkage,
+                             :PrivateLinkage,
+                             :LinkerPrivateLinkage,
+                             :LinkerPrivateWeakLinkage,
+                             :DLLImportLinkage,
+                             :DLLExportLinkage,
+                             :ExternalWeakLinkage,
+                             :CommonLinkage])
+
+    llvm_enum(:VisibilityType, [:DefaultVisibility,
+                                :HiddenVisibility,
+                                :ProtectedVisibility])
+
+    llmv_enum(:AsmDialect, [:ATTDialect, :IntelDialect])
+
+    llvm_enum(:AtomicRMWOp, [:Xchg, :Add, :Sub, :And,
+                             :Nand, :Or, :Xor, :Max, :Min,
+                             :UMax, :UMin])
+
+    llvm_enum(:RelocModel, [:RelocDefault,
+                            :RelocStatic,
+                            :RelocPIC,
+                            :RelocDynamicNoPIC])
+
+    llvm_enum(:CodeModel, [:CodeModelDefault,
+                           :CodeModelJITDefault,
+                           :CodeModelSmall,
+                           :CodeModelKernel,
+                           :CodeModelMedium,
+                           :CodeModelLarge])
+
+    llvm_enum(:CodeGenOptLevel, [:CodeGenOptLevelNone,
+                                 :CodeGenOptLevelLess,
+                                 :CodeGenOptLevelDefault,
+                                 :CodeGenOptLevelAggressive])
+
+    llvm_enum(:CodeGenFileType, [:CodeGenAssemblyFile, 
+                                 :CodeGenObjectFile])
 end
