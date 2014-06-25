@@ -1,6 +1,9 @@
-# Skipping MacroDefinition: LLVM_FOR_EACH_VALUE_SUBCLASS ( macro ) macro ( Argument ) macro ( BasicBlock ) macro ( InlineAsm ) macro ( MDNode ) macro ( MDString ) macro ( User ) macro ( Constant ) macro ( BlockAddress ) macro ( ConstantAggregateZero ) macro ( ConstantArray ) macro ( ConstantExpr ) macro ( ConstantFP ) macro ( ConstantInt ) macro ( ConstantPointerNull ) macro ( ConstantStruct ) macro ( ConstantVector ) macro ( GlobalValue ) macro ( Function ) macro ( GlobalAlias ) macro ( GlobalVariable ) macro ( UndefValue ) macro ( Instruction ) macro ( BinaryOperator ) macro ( CallInst ) macro ( IntrinsicInst ) macro ( DbgInfoIntrinsic ) macro ( DbgDeclareInst ) macro ( MemIntrinsic ) macro ( MemCpyInst ) macro ( MemMoveInst ) macro ( MemSetInst ) macro ( CmpInst ) macro ( FCmpInst ) macro ( ICmpInst ) macro ( ExtractElementInst ) macro ( GetElementPtrInst ) macro ( InsertElementInst ) macro ( InsertValueInst ) macro ( LandingPadInst ) macro ( PHINode ) macro ( SelectInst ) macro ( ShuffleVectorInst ) macro ( StoreInst ) macro ( TerminatorInst ) macro ( BranchInst ) macro ( IndirectBrInst ) macro ( InvokeInst ) macro ( ReturnInst ) macro ( SwitchInst ) macro ( UnreachableInst ) macro ( ResumeInst ) macro ( UnaryInstruction ) macro ( AllocaInst ) macro ( CastInst ) macro ( BitCastInst ) macro ( FPExtInst ) macro ( FPToSIInst ) macro ( FPToUIInst ) macro ( FPTruncInst ) macro ( IntToPtrInst ) macro ( PtrToIntInst ) macro ( SExtInst ) macro ( SIToFPInst ) macro ( TruncInst ) macro ( UIToFPInst ) macro ( ZExtInst ) macro ( ExtractValueInst ) macro ( LoadInst ) macro ( VAArgInst )
+# Skipping MacroDefinition: LLVM_FOR_EACH_VALUE_SUBCLASS ( macro ) macro ( Argument ) macro ( BasicBlock ) macro ( InlineAsm ) macro ( MDNode ) macro ( MDString ) macro ( User ) macro ( Constant ) macro ( BlockAddress ) macro ( ConstantAggregateZero ) macro ( ConstantArray ) macro ( ConstantDataSequential ) macro ( ConstantDataArray ) macro ( ConstantDataVector ) macro ( ConstantExpr ) macro ( ConstantFP ) macro ( ConstantInt ) macro ( ConstantPointerNull ) macro ( ConstantStruct ) macro ( ConstantVector ) macro ( GlobalValue ) macro ( GlobalAlias ) macro ( GlobalObject ) macro ( Function ) macro ( GlobalVariable ) macro ( UndefValue ) macro ( Instruction ) macro ( BinaryOperator ) macro ( CallInst ) macro ( IntrinsicInst ) macro ( DbgInfoIntrinsic ) macro ( DbgDeclareInst ) macro ( MemIntrinsic ) macro ( MemCpyInst ) macro ( MemMoveInst ) macro ( MemSetInst ) macro ( CmpInst ) macro ( FCmpInst ) macro ( ICmpInst ) macro ( ExtractElementInst ) macro ( GetElementPtrInst ) macro ( InsertElementInst ) macro ( InsertValueInst ) macro ( LandingPadInst ) macro ( PHINode ) macro ( SelectInst ) macro ( ShuffleVectorInst ) macro ( StoreInst ) macro ( TerminatorInst ) macro ( BranchInst ) macro ( IndirectBrInst ) macro ( InvokeInst ) macro ( ReturnInst ) macro ( SwitchInst ) macro ( UnreachableInst ) macro ( ResumeInst ) macro ( UnaryInstruction ) macro ( AllocaInst ) macro ( CastInst ) macro ( AddrSpaceCastInst ) macro ( BitCastInst ) macro ( FPExtInst ) macro ( FPToSIInst ) macro ( FPToUIInst ) macro ( FPTruncInst ) macro ( IntToPtrInst ) macro ( PtrToIntInst ) macro ( SExtInst ) macro ( SIToFPInst ) macro ( TruncInst ) macro ( UIToFPInst ) macro ( ZExtInst ) macro ( ExtractValueInst ) macro ( LoadInst ) macro ( VAArgInst )
 # Skipping MacroDefinition: LLVM_DECLARE_VALUE_CAST ( name ) LLVMValueRef LLVMIsA ## name ( LLVMValueRef Val ) ;
 typealias LLVMBool Cint
+type LLVMOpaqueMemoryBuffer
+end
+typealias LLVMMemoryBufferRef Ptr{LLVMOpaqueMemoryBuffer}
 type LLVMOpaqueContext
 end
 typealias LLVMContextRef Ptr{LLVMOpaqueContext}
@@ -22,9 +25,6 @@ typealias LLVMBuilderRef Ptr{LLVMOpaqueBuilder}
 type LLVMOpaqueModuleProvider
 end
 typealias LLVMModuleProviderRef Ptr{LLVMOpaqueModuleProvider}
-type LLVMOpaqueMemoryBuffer
-end
-typealias LLVMMemoryBufferRef Ptr{LLVMOpaqueMemoryBuffer}
 type LLVMOpaquePassManager
 end
 typealias LLVMPassManagerRef Ptr{LLVMOpaquePassManager}
@@ -34,6 +34,9 @@ typealias LLVMPassRegistryRef Ptr{LLVMOpaquePassRegistry}
 type LLVMOpaqueUse
 end
 typealias LLVMUseRef Ptr{LLVMOpaqueUse}
+type LLVMOpaqueDiagnosticInfo
+end
+typealias LLVMDiagnosticInfoRef Ptr{LLVMOpaqueDiagnosticInfo}
 # begin enum ANONYMOUS_1
 typealias ANONYMOUS_1 Cint
 const LLVMZExtAttribute = int32(1)
@@ -134,6 +137,7 @@ const LLVMFPExt = uint32(38)
 const LLVMPtrToInt = uint32(39)
 const LLVMIntToPtr = uint32(40)
 const LLVMBitCast = uint32(41)
+const LLVMAddrSpaceCast = uint32(60)
 const LLVMICmp = uint32(42)
 const LLVMFCmp = uint32(43)
 const LLVMPHI = uint32(44)
@@ -198,11 +202,19 @@ const LLVMDefaultVisibility = uint32(0)
 const LLVMHiddenVisibility = uint32(1)
 const LLVMProtectedVisibility = uint32(2)
 # end enum LLVMVisibility
+# begin enum LLVMDLLStorageClass
+typealias LLVMDLLStorageClass Uint32
+const LLVMDefaultStorageClass = uint32(0)
+const LLVMDLLImportStorageClass = uint32(1)
+const LLVMDLLExportStorageClass = uint32(2)
+# end enum LLVMDLLStorageClass
 # begin enum LLVMCallConv
 typealias LLVMCallConv Uint32
 const LLVMCCallConv = uint32(0)
 const LLVMFastCallConv = uint32(8)
 const LLVMColdCallConv = uint32(9)
+const LLVMWebKitJSCallConv = uint32(12)
+const LLVMAnyRegCallConv = uint32(13)
 const LLVMX86StdcallCallConv = uint32(64)
 const LLVMX86FastcallCallConv = uint32(65)
 # end enum LLVMCallConv
@@ -275,6 +287,16 @@ const LLVMAtomicRMWBinOpMin = uint32(8)
 const LLVMAtomicRMWBinOpUMax = uint32(9)
 const LLVMAtomicRMWBinOpUMin = uint32(10)
 # end enum LLVMAtomicRMWBinOp
+# begin enum LLVMDiagnosticSeverity
+typealias LLVMDiagnosticSeverity Uint32
+const LLVMDSError = uint32(0)
+const LLVMDSWarning = uint32(1)
+const LLVMDSRemark = uint32(2)
+const LLVMDSNote = uint32(3)
+# end enum LLVMDiagnosticSeverity
+typealias LLVMFatalErrorHandler Ptr{Void}
+typealias LLVMDiagnosticHandler Ptr{Void}
+typealias LLVMYieldCallback Ptr{Void}
 # Skipping MacroDefinition: LLVM_TARGET ( TargetName ) void LLVMInitialize ## TargetName ## TargetInfo ( void ) ;
 # Skipping MacroDefinition: LLVM_ASM_PRINTER ( TargetName ) void LLVMInitialize ## TargetName ## AsmPrinter ( void ) ;
 # Skipping MacroDefinition: LLVM_ASM_PARSER ( TargetName ) void LLVMInitialize ## TargetName ## AsmParser ( void ) ;
@@ -290,9 +312,6 @@ typealias LLVMTargetDataRef Ptr{LLVMOpaqueTargetData}
 type LLVMOpaqueTargetLibraryInfotData
 end
 typealias LLVMTargetLibraryInfoRef Ptr{LLVMOpaqueTargetLibraryInfotData}
-type LLVMStructLayout
-end
-typealias LLVMStructLayoutRef Ptr{LLVMStructLayout}
 type LLVMOpaqueTargetMachine
 end
 typealias LLVMTargetMachineRef Ptr{LLVMOpaqueTargetMachine}
@@ -383,36 +402,63 @@ typealias LLVMGenericValueRef Ptr{LLVMOpaqueGenericValue}
 type LLVMOpaqueExecutionEngine
 end
 typealias LLVMExecutionEngineRef Ptr{LLVMOpaqueExecutionEngine}
+type LLVMOpaqueMCJITMemoryManager
+end
+typealias LLVMMCJITMemoryManagerRef Ptr{LLVMOpaqueMCJITMemoryManager}
 type LLVMMCJITCompilerOptions
     OptLevel::Uint32
     CodeModel::LLVMCodeModel
     NoFramePointerElim::LLVMBool
     EnableFastISel::LLVMBool
+    MCJMM::LLVMMCJITMemoryManagerRef
 end
+typealias LLVMMemoryManagerAllocateCodeSectionCallback Ptr{Void}
+typealias LLVMMemoryManagerAllocateDataSectionCallback Ptr{Void}
+typealias LLVMMemoryManagerFinalizeMemoryCallback Ptr{Void}
+typealias LLVMMemoryManagerDestroyCallback Ptr{Void}
 const LLVMDisassembler_VariantKind_None = 0
 const LLVMDisassembler_VariantKind_ARM_HI16 = 1
 const LLVMDisassembler_VariantKind_ARM_LO16 = 2
+const LLVMDisassembler_VariantKind_ARM64_PAGE = 1
+const LLVMDisassembler_VariantKind_ARM64_PAGEOFF = 2
+const LLVMDisassembler_VariantKind_ARM64_GOTPAGE = 3
+const LLVMDisassembler_VariantKind_ARM64_GOTPAGEOFF = 4
+const LLVMDisassembler_VariantKind_ARM64_TLVP = 5
+const LLVMDisassembler_VariantKind_ARM64_TLVOFF = 6
 const LLVMDisassembler_ReferenceType_InOut_None = 0
 const LLVMDisassembler_ReferenceType_In_Branch = 1
 const LLVMDisassembler_ReferenceType_In_PCrel_Load = 2
+const LLVMDisassembler_ReferenceType_In_ARM64_ADRP = 0x0000000100000001
+const LLVMDisassembler_ReferenceType_In_ARM64_ADDXri = 0x0000000100000002
+const LLVMDisassembler_ReferenceType_In_ARM64_LDRXui = 0x0000000100000003
+const LLVMDisassembler_ReferenceType_In_ARM64_LDRXl = 0x0000000100000004
+const LLVMDisassembler_ReferenceType_In_ARM64_ADR = 0x0000000100000005
 const LLVMDisassembler_ReferenceType_Out_SymbolStub = 1
 const LLVMDisassembler_ReferenceType_Out_LitPool_SymAddr = 2
 const LLVMDisassembler_ReferenceType_Out_LitPool_CstrAddr = 3
+const LLVMDisassembler_ReferenceType_Out_Objc_CFString_Ref = 4
+const LLVMDisassembler_ReferenceType_Out_Objc_Message = 5
+const LLVMDisassembler_ReferenceType_Out_Objc_Message_Ref = 6
+const LLVMDisassembler_ReferenceType_Out_Objc_Selector_Ref = 7
+const LLVMDisassembler_ReferenceType_Out_Objc_Class_Ref = 8
+const LLVMDisassembler_ReferenceType_DeMangled_Name = 9
 const LLVMDisassembler_Option_UseMarkup = 1
 const LLVMDisassembler_Option_PrintImmHex = 2
 const LLVMDisassembler_Option_AsmPrinterVariant = 4
+const LLVMDisassembler_Option_SetInstrComments = 8
+const LLVMDisassembler_Option_PrintLatency = 16
 typealias LLVMDisasmContextRef Ptr{Void}
 typealias LLVMOpInfoCallback Ptr{Void}
 type LLVMOpInfoSymbol1
-    Present::Uint64
+    Present::Cint
     Name::Ptr{Uint8}
-    Value::Uint64
+    Value::Cint
 end
 type LLVMOpInfo1
     AddSymbol::LLVMOpInfoSymbol1
     SubtractSymbol::LLVMOpInfoSymbol1
-    Value::Uint64
-    VariantKind::Uint64
+    Value::Cint
+    VariantKind::Cint
 end
 typealias LLVMSymbolLookupCallback Ptr{Void}
 type LLVMOpaquePassManagerBuilder

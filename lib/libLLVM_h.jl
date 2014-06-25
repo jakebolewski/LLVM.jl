@@ -1,12 +1,30 @@
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Core.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Core.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
+function LLVMLoadLibraryPermanently(Filename::Ptr{Uint8})
+    ccall((:LLVMLoadLibraryPermanently,libllvm),LLVMBool,(Ptr{Uint8},),Filename)
+end
 function LLVMInitializeCore(R::LLVMPassRegistryRef)
     ccall((:LLVMInitializeCore,libllvm),Void,(LLVMPassRegistryRef,),R)
 end
+function LLVMShutdown()
+    ccall((:LLVMShutdown,libllvm),Void,())
+end
+function LLVMCreateMessage(Message::Ptr{Uint8})
+    ccall((:LLVMCreateMessage,libllvm),Ptr{Uint8},(Ptr{Uint8},),Message)
+end
 function LLVMDisposeMessage(Message::Ptr{Uint8})
     ccall((:LLVMDisposeMessage,libllvm),Void,(Ptr{Uint8},),Message)
+end
+function LLVMInstallFatalErrorHandler(Handler::LLVMFatalErrorHandler)
+    ccall((:LLVMInstallFatalErrorHandler,libllvm),Void,(LLVMFatalErrorHandler,),Handler)
+end
+function LLVMResetFatalErrorHandler()
+    ccall((:LLVMResetFatalErrorHandler,libllvm),Void,())
+end
+function LLVMEnablePrettyStackTrace()
+    ccall((:LLVMEnablePrettyStackTrace,libllvm),Void,())
 end
 function LLVMContextCreate()
     ccall((:LLVMContextCreate,libllvm),LLVMContextRef,())
@@ -14,8 +32,20 @@ end
 function LLVMGetGlobalContext()
     ccall((:LLVMGetGlobalContext,libllvm),LLVMContextRef,())
 end
+function LLVMContextSetDiagnosticHandler(C::LLVMContextRef,Handler::LLVMDiagnosticHandler,DiagnosticContext::Ptr{Void})
+    ccall((:LLVMContextSetDiagnosticHandler,libllvm),Void,(LLVMContextRef,LLVMDiagnosticHandler,Ptr{Void}),C,Handler,DiagnosticContext)
+end
+function LLVMContextSetYieldCallback(C::LLVMContextRef,Callback::LLVMYieldCallback,OpaqueHandle::Ptr{Void})
+    ccall((:LLVMContextSetYieldCallback,libllvm),Void,(LLVMContextRef,LLVMYieldCallback,Ptr{Void}),C,Callback,OpaqueHandle)
+end
 function LLVMContextDispose(C::LLVMContextRef)
     ccall((:LLVMContextDispose,libllvm),Void,(LLVMContextRef,),C)
+end
+function LLVMGetDiagInfoDescription(DI::LLVMDiagnosticInfoRef)
+    ccall((:LLVMGetDiagInfoDescription,libllvm),Ptr{Uint8},(LLVMDiagnosticInfoRef,),DI)
+end
+function LLVMGetDiagInfoSeverity(DI::LLVMDiagnosticInfoRef)
+    ccall((:LLVMGetDiagInfoSeverity,libllvm),LLVMDiagnosticSeverity,(LLVMDiagnosticInfoRef,),DI)
 end
 function LLVMGetMDKindIDInContext(C::LLVMContextRef,Name::Ptr{Uint8},SLen::Uint32)
     ccall((:LLVMGetMDKindIDInContext,libllvm),Uint32,(LLVMContextRef,Ptr{Uint8},Uint32),C,Name,SLen)
@@ -49,6 +79,9 @@ function LLVMDumpModule(M::LLVMModuleRef)
 end
 function LLVMPrintModuleToFile(M::LLVMModuleRef,Filename::Ptr{Uint8},ErrorMessage::Ptr{Ptr{Uint8}})
     ccall((:LLVMPrintModuleToFile,libllvm),LLVMBool,(LLVMModuleRef,Ptr{Uint8},Ptr{Ptr{Uint8}}),M,Filename,ErrorMessage)
+end
+function LLVMPrintModuleToString(M::LLVMModuleRef)
+    ccall((:LLVMPrintModuleToString,libllvm),Ptr{Uint8},(LLVMModuleRef,),M)
 end
 function LLVMSetModuleInlineAsm(M::LLVMModuleRef,Asm::Ptr{Uint8})
     ccall((:LLVMSetModuleInlineAsm,libllvm),Void,(LLVMModuleRef,Ptr{Uint8}),M,Asm)
@@ -94,6 +127,12 @@ function LLVMTypeIsSized(Ty::LLVMTypeRef)
 end
 function LLVMGetTypeContext(Ty::LLVMTypeRef)
     ccall((:LLVMGetTypeContext,libllvm),LLVMContextRef,(LLVMTypeRef,),Ty)
+end
+function LLVMDumpType(Val::LLVMTypeRef)
+    ccall((:LLVMDumpType,libllvm),Void,(LLVMTypeRef,),Val)
+end
+function LLVMPrintTypeToString(Val::LLVMTypeRef)
+    ccall((:LLVMPrintTypeToString,libllvm),Ptr{Uint8},(LLVMTypeRef,),Val)
 end
 function LLVMInt1TypeInContext(C::LLVMContextRef)
     ccall((:LLVMInt1TypeInContext,libllvm),LLVMTypeRef,(LLVMContextRef,),C)
@@ -263,6 +302,9 @@ end
 function LLVMDumpValue(Val::LLVMValueRef)
     ccall((:LLVMDumpValue,libllvm),Void,(LLVMValueRef,),Val)
 end
+function LLVMPrintValueToString(Val::LLVMValueRef)
+    ccall((:LLVMPrintValueToString,libllvm),Ptr{Uint8},(LLVMValueRef,),Val)
+end
 function LLVMReplaceAllUsesWith(OldVal::LLVMValueRef,NewVal::LLVMValueRef)
     ccall((:LLVMReplaceAllUsesWith,libllvm),Void,(LLVMValueRef,LLVMValueRef),OldVal,NewVal)
 end
@@ -302,6 +344,15 @@ end
 function LLVMIsAConstantArray(Val::LLVMValueRef)
     ccall((:LLVMIsAConstantArray,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
 end
+function LLVMIsAConstantDataSequential(Val::LLVMValueRef)
+    ccall((:LLVMIsAConstantDataSequential,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
+end
+function LLVMIsAConstantDataArray(Val::LLVMValueRef)
+    ccall((:LLVMIsAConstantDataArray,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
+end
+function LLVMIsAConstantDataVector(Val::LLVMValueRef)
+    ccall((:LLVMIsAConstantDataVector,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
+end
 function LLVMIsAConstantExpr(Val::LLVMValueRef)
     ccall((:LLVMIsAConstantExpr,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
 end
@@ -323,11 +374,14 @@ end
 function LLVMIsAGlobalValue(Val::LLVMValueRef)
     ccall((:LLVMIsAGlobalValue,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
 end
-function LLVMIsAFunction(Val::LLVMValueRef)
-    ccall((:LLVMIsAFunction,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
-end
 function LLVMIsAGlobalAlias(Val::LLVMValueRef)
     ccall((:LLVMIsAGlobalAlias,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
+end
+function LLVMIsAGlobalObject(Val::LLVMValueRef)
+    ccall((:LLVMIsAGlobalObject,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
+end
+function LLVMIsAFunction(Val::LLVMValueRef)
+    ccall((:LLVMIsAFunction,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
 end
 function LLVMIsAGlobalVariable(Val::LLVMValueRef)
     ccall((:LLVMIsAGlobalVariable,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
@@ -434,6 +488,9 @@ end
 function LLVMIsACastInst(Val::LLVMValueRef)
     ccall((:LLVMIsACastInst,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
 end
+function LLVMIsAAddrSpaceCastInst(Val::LLVMValueRef)
+    ccall((:LLVMIsAAddrSpaceCastInst,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
+end
 function LLVMIsABitCastInst(Val::LLVMValueRef)
     ccall((:LLVMIsABitCastInst,libllvm),LLVMValueRef,(LLVMValueRef,),Val)
 end
@@ -518,14 +575,14 @@ end
 function LLVMConstInt(IntTy::LLVMTypeRef,N::Culonglong,SignExtend::LLVMBool)
     ccall((:LLVMConstInt,libllvm),LLVMValueRef,(LLVMTypeRef,Culonglong,LLVMBool),IntTy,N,SignExtend)
 end
-function LLVMConstIntOfArbitraryPrecision(IntTy::LLVMTypeRef,NumWords::Uint32,Words::Ptr{Uint64})
-    ccall((:LLVMConstIntOfArbitraryPrecision,libllvm),LLVMValueRef,(LLVMTypeRef,Uint32,Ptr{Uint64}),IntTy,NumWords,Words)
+function LLVMConstIntOfArbitraryPrecision(IntTy::LLVMTypeRef,NumWords::Uint32,Words::Ptr{Cint})
+    ccall((:LLVMConstIntOfArbitraryPrecision,libllvm),LLVMValueRef,(LLVMTypeRef,Uint32,Ptr{Cint}),IntTy,NumWords,Words)
 end
-function LLVMConstIntOfString(IntTy::LLVMTypeRef,Text::Ptr{Uint8},Radix::Uint8)
-    ccall((:LLVMConstIntOfString,libllvm),LLVMValueRef,(LLVMTypeRef,Ptr{Uint8},Uint8),IntTy,Text,Radix)
+function LLVMConstIntOfString(IntTy::LLVMTypeRef,Text::Ptr{Uint8},Radix::Cint)
+    ccall((:LLVMConstIntOfString,libllvm),LLVMValueRef,(LLVMTypeRef,Ptr{Uint8},Cint),IntTy,Text,Radix)
 end
-function LLVMConstIntOfStringAndSize(IntTy::LLVMTypeRef,Text::Ptr{Uint8},SLen::Uint32,Radix::Uint8)
-    ccall((:LLVMConstIntOfStringAndSize,libllvm),LLVMValueRef,(LLVMTypeRef,Ptr{Uint8},Uint32,Uint8),IntTy,Text,SLen,Radix)
+function LLVMConstIntOfStringAndSize(IntTy::LLVMTypeRef,Text::Ptr{Uint8},SLen::Uint32,Radix::Cint)
+    ccall((:LLVMConstIntOfStringAndSize,libllvm),LLVMValueRef,(LLVMTypeRef,Ptr{Uint8},Uint32,Cint),IntTy,Text,SLen,Radix)
 end
 function LLVMConstReal(RealTy::LLVMTypeRef,N::Cdouble)
     ccall((:LLVMConstReal,libllvm),LLVMValueRef,(LLVMTypeRef,Cdouble),RealTy,N)
@@ -710,6 +767,9 @@ end
 function LLVMConstBitCast(ConstantVal::LLVMValueRef,ToType::LLVMTypeRef)
     ccall((:LLVMConstBitCast,libllvm),LLVMValueRef,(LLVMValueRef,LLVMTypeRef),ConstantVal,ToType)
 end
+function LLVMConstAddrSpaceCast(ConstantVal::LLVMValueRef,ToType::LLVMTypeRef)
+    ccall((:LLVMConstAddrSpaceCast,libllvm),LLVMValueRef,(LLVMValueRef,LLVMTypeRef),ConstantVal,ToType)
+end
 function LLVMConstZExtOrBitCast(ConstantVal::LLVMValueRef,ToType::LLVMTypeRef)
     ccall((:LLVMConstZExtOrBitCast,libllvm),LLVMValueRef,(LLVMValueRef,LLVMTypeRef),ConstantVal,ToType)
 end
@@ -776,11 +836,23 @@ end
 function LLVMSetVisibility(Global::LLVMValueRef,Viz::LLVMVisibility)
     ccall((:LLVMSetVisibility,libllvm),Void,(LLVMValueRef,LLVMVisibility),Global,Viz)
 end
-function LLVMGetAlignment(Global::LLVMValueRef)
-    ccall((:LLVMGetAlignment,libllvm),Uint32,(LLVMValueRef,),Global)
+function LLVMGetDLLStorageClass(Global::LLVMValueRef)
+    ccall((:LLVMGetDLLStorageClass,libllvm),LLVMDLLStorageClass,(LLVMValueRef,),Global)
 end
-function LLVMSetAlignment(Global::LLVMValueRef,Bytes::Uint32)
-    ccall((:LLVMSetAlignment,libllvm),Void,(LLVMValueRef,Uint32),Global,Bytes)
+function LLVMSetDLLStorageClass(Global::LLVMValueRef,Class::LLVMDLLStorageClass)
+    ccall((:LLVMSetDLLStorageClass,libllvm),Void,(LLVMValueRef,LLVMDLLStorageClass),Global,Class)
+end
+function LLVMHasUnnamedAddr(Global::LLVMValueRef)
+    ccall((:LLVMHasUnnamedAddr,libllvm),LLVMBool,(LLVMValueRef,),Global)
+end
+function LLVMSetUnnamedAddr(Global::LLVMValueRef,HasUnnamedAddr::LLVMBool)
+    ccall((:LLVMSetUnnamedAddr,libllvm),Void,(LLVMValueRef,LLVMBool),Global,HasUnnamedAddr)
+end
+function LLVMGetAlignment(V::LLVMValueRef)
+    ccall((:LLVMGetAlignment,libllvm),Uint32,(LLVMValueRef,),V)
+end
+function LLVMSetAlignment(V::LLVMValueRef,Bytes::Uint32)
+    ccall((:LLVMSetAlignment,libllvm),Void,(LLVMValueRef,Uint32),V,Bytes)
 end
 function LLVMAddGlobal(M::LLVMModuleRef,Ty::LLVMTypeRef,Name::Ptr{Uint8})
     ccall((:LLVMAddGlobal,libllvm),LLVMValueRef,(LLVMModuleRef,LLVMTypeRef,Ptr{Uint8}),M,Ty,Name)
@@ -1310,6 +1382,9 @@ end
 function LLVMBuildBitCast(arg1::LLVMBuilderRef,Val::LLVMValueRef,DestTy::LLVMTypeRef,Name::Ptr{Uint8})
     ccall((:LLVMBuildBitCast,libllvm),LLVMValueRef,(LLVMBuilderRef,LLVMValueRef,LLVMTypeRef,Ptr{Uint8}),arg1,Val,DestTy,Name)
 end
+function LLVMBuildAddrSpaceCast(arg1::LLVMBuilderRef,Val::LLVMValueRef,DestTy::LLVMTypeRef,Name::Ptr{Uint8})
+    ccall((:LLVMBuildAddrSpaceCast,libllvm),LLVMValueRef,(LLVMBuilderRef,LLVMValueRef,LLVMTypeRef,Ptr{Uint8}),arg1,Val,DestTy,Name)
+end
 function LLVMBuildZExtOrBitCast(arg1::LLVMBuilderRef,Val::LLVMValueRef,DestTy::LLVMTypeRef,Name::Ptr{Uint8})
     ccall((:LLVMBuildZExtOrBitCast,libllvm),LLVMValueRef,(LLVMBuilderRef,LLVMValueRef,LLVMTypeRef,Ptr{Uint8}),arg1,Val,DestTy,Name)
 end
@@ -1373,6 +1448,9 @@ end
 function LLVMBuildPtrDiff(arg1::LLVMBuilderRef,LHS::LLVMValueRef,RHS::LLVMValueRef,Name::Ptr{Uint8})
     ccall((:LLVMBuildPtrDiff,libllvm),LLVMValueRef,(LLVMBuilderRef,LLVMValueRef,LLVMValueRef,Ptr{Uint8}),arg1,LHS,RHS,Name)
 end
+function LLVMBuildFence(B::LLVMBuilderRef,ordering::LLVMAtomicOrdering,singleThread::LLVMBool,Name::Ptr{Uint8})
+    ccall((:LLVMBuildFence,libllvm),LLVMValueRef,(LLVMBuilderRef,LLVMAtomicOrdering,LLVMBool,Ptr{Uint8}),B,ordering,singleThread,Name)
+end
 function LLVMBuildAtomicRMW(B::LLVMBuilderRef,op::LLVMAtomicRMWBinOp,PTR::LLVMValueRef,Val::LLVMValueRef,ordering::LLVMAtomicOrdering,singleThread::LLVMBool)
     ccall((:LLVMBuildAtomicRMW,libllvm),LLVMValueRef,(LLVMBuilderRef,LLVMAtomicRMWBinOp,LLVMValueRef,LLVMValueRef,LLVMAtomicOrdering,LLVMBool),B,op,PTR,Val,ordering,singleThread)
 end
@@ -1388,17 +1466,17 @@ end
 function LLVMCreateMemoryBufferWithSTDIN(OutMemBuf::Ptr{LLVMMemoryBufferRef},OutMessage::Ptr{Ptr{Uint8}})
     ccall((:LLVMCreateMemoryBufferWithSTDIN,libllvm),LLVMBool,(Ptr{LLVMMemoryBufferRef},Ptr{Ptr{Uint8}}),OutMemBuf,OutMessage)
 end
-function LLVMCreateMemoryBufferWithMemoryRange(InputData::Ptr{Uint8},InputDataLength::Csize_t,BufferName::Ptr{Uint8},RequiresNullTerminator::LLVMBool)
-    ccall((:LLVMCreateMemoryBufferWithMemoryRange,libllvm),LLVMMemoryBufferRef,(Ptr{Uint8},Csize_t,Ptr{Uint8},LLVMBool),InputData,InputDataLength,BufferName,RequiresNullTerminator)
+function LLVMCreateMemoryBufferWithMemoryRange(InputData::Ptr{Uint8},InputDataLength::Cint,BufferName::Ptr{Uint8},RequiresNullTerminator::LLVMBool)
+    ccall((:LLVMCreateMemoryBufferWithMemoryRange,libllvm),LLVMMemoryBufferRef,(Ptr{Uint8},Cint,Ptr{Uint8},LLVMBool),InputData,InputDataLength,BufferName,RequiresNullTerminator)
 end
-function LLVMCreateMemoryBufferWithMemoryRangeCopy(InputData::Ptr{Uint8},InputDataLength::Csize_t,BufferName::Ptr{Uint8})
-    ccall((:LLVMCreateMemoryBufferWithMemoryRangeCopy,libllvm),LLVMMemoryBufferRef,(Ptr{Uint8},Csize_t,Ptr{Uint8}),InputData,InputDataLength,BufferName)
+function LLVMCreateMemoryBufferWithMemoryRangeCopy(InputData::Ptr{Uint8},InputDataLength::Cint,BufferName::Ptr{Uint8})
+    ccall((:LLVMCreateMemoryBufferWithMemoryRangeCopy,libllvm),LLVMMemoryBufferRef,(Ptr{Uint8},Cint,Ptr{Uint8}),InputData,InputDataLength,BufferName)
 end
 function LLVMGetBufferStart(MemBuf::LLVMMemoryBufferRef)
     ccall((:LLVMGetBufferStart,libllvm),Ptr{Uint8},(LLVMMemoryBufferRef,),MemBuf)
 end
-function LLVMGetBufferSize(MemBuf::LLVMMemoryBufferRef)
-    ccall((:LLVMGetBufferSize,libllvm),Csize_t,(LLVMMemoryBufferRef,),MemBuf)
+function LLVMGetBufferSize()
+    ccall((:LLVMGetBufferSize,libllvm),Cint,())
 end
 function LLVMDisposeMemoryBuffer(MemBuf::LLVMMemoryBufferRef)
     ccall((:LLVMDisposeMemoryBuffer,libllvm),Void,(LLVMMemoryBufferRef,),MemBuf)
@@ -1430,7 +1508,16 @@ end
 function LLVMDisposePassManager(PM::LLVMPassManagerRef)
     ccall((:LLVMDisposePassManager,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/TargetMachine.h
+function LLVMStartMultithreaded()
+    ccall((:LLVMStartMultithreaded,libllvm),LLVMBool,())
+end
+function LLVMStopMultithreaded()
+    ccall((:LLVMStopMultithreaded,libllvm),Void,())
+end
+function LLVMIsMultithreaded()
+    ccall((:LLVMIsMultithreaded,libllvm),LLVMBool,())
+end
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/TargetMachine.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1455,65 +1542,89 @@ end
 function LLVMInitializeNativeTarget()
     ccall((:LLVMInitializeNativeTarget,libllvm),LLVMBool,())
 end
+function LLVMInitializeNativeAsmParser()
+    ccall((:LLVMInitializeNativeAsmParser,libllvm),LLVMBool,())
+end
+function LLVMInitializeNativeAsmPrinter()
+    ccall((:LLVMInitializeNativeAsmPrinter,libllvm),LLVMBool,())
+end
+function LLVMInitializeNativeDisassembler()
+    ccall((:LLVMInitializeNativeDisassembler,libllvm),LLVMBool,())
+end
 function LLVMCreateTargetData(StringRep::Ptr{Uint8})
     ccall((:LLVMCreateTargetData,libllvm),LLVMTargetDataRef,(Ptr{Uint8},),StringRep)
 end
-function LLVMAddTargetData(arg1::LLVMTargetDataRef,arg2::LLVMPassManagerRef)
-    ccall((:LLVMAddTargetData,libllvm),Void,(LLVMTargetDataRef,LLVMPassManagerRef),arg1,arg2)
+function LLVMAddTargetData(TD::LLVMTargetDataRef,PM::LLVMPassManagerRef)
+    ccall((:LLVMAddTargetData,libllvm),Void,(LLVMTargetDataRef,LLVMPassManagerRef),TD,PM)
 end
-function LLVMAddTargetLibraryInfo(arg1::LLVMTargetLibraryInfoRef,arg2::LLVMPassManagerRef)
-    ccall((:LLVMAddTargetLibraryInfo,libllvm),Void,(LLVMTargetLibraryInfoRef,LLVMPassManagerRef),arg1,arg2)
+function LLVMAddTargetLibraryInfo(TLI::LLVMTargetLibraryInfoRef,PM::LLVMPassManagerRef)
+    ccall((:LLVMAddTargetLibraryInfo,libllvm),Void,(LLVMTargetLibraryInfoRef,LLVMPassManagerRef),TLI,PM)
 end
-function LLVMCopyStringRepOfTargetData(arg1::LLVMTargetDataRef)
-    ccall((:LLVMCopyStringRepOfTargetData,libllvm),Ptr{Uint8},(LLVMTargetDataRef,),arg1)
+function LLVMCopyStringRepOfTargetData(TD::LLVMTargetDataRef)
+    ccall((:LLVMCopyStringRepOfTargetData,libllvm),Ptr{Uint8},(LLVMTargetDataRef,),TD)
 end
-function LLVMByteOrder(arg1::LLVMTargetDataRef)
-    ccall((:LLVMByteOrder,libllvm),Cint,(LLVMTargetDataRef,),arg1)
+function LLVMByteOrder(TD::LLVMTargetDataRef)
+    ccall((:LLVMByteOrder,libllvm),Cint,(LLVMTargetDataRef,),TD)
 end
-function LLVMPointerSize(arg1::LLVMTargetDataRef)
-    ccall((:LLVMPointerSize,libllvm),Uint32,(LLVMTargetDataRef,),arg1)
+function LLVMPointerSize(TD::LLVMTargetDataRef)
+    ccall((:LLVMPointerSize,libllvm),Uint32,(LLVMTargetDataRef,),TD)
 end
-function LLVMPointerSizeForAS(arg1::LLVMTargetDataRef,AS::Uint32)
-    ccall((:LLVMPointerSizeForAS,libllvm),Uint32,(LLVMTargetDataRef,Uint32),arg1,AS)
+function LLVMPointerSizeForAS(TD::LLVMTargetDataRef,AS::Uint32)
+    ccall((:LLVMPointerSizeForAS,libllvm),Uint32,(LLVMTargetDataRef,Uint32),TD,AS)
 end
-function LLVMIntPtrType(arg1::LLVMTargetDataRef)
-    ccall((:LLVMIntPtrType,libllvm),LLVMTypeRef,(LLVMTargetDataRef,),arg1)
+function LLVMIntPtrType(TD::LLVMTargetDataRef)
+    ccall((:LLVMIntPtrType,libllvm),LLVMTypeRef,(LLVMTargetDataRef,),TD)
 end
-function LLVMIntPtrTypeForAS(arg1::LLVMTargetDataRef,AS::Uint32)
-    ccall((:LLVMIntPtrTypeForAS,libllvm),LLVMTypeRef,(LLVMTargetDataRef,Uint32),arg1,AS)
+function LLVMIntPtrTypeForAS(TD::LLVMTargetDataRef,AS::Uint32)
+    ccall((:LLVMIntPtrTypeForAS,libllvm),LLVMTypeRef,(LLVMTargetDataRef,Uint32),TD,AS)
 end
-function LLVMSizeOfTypeInBits(arg1::LLVMTargetDataRef,arg2::LLVMTypeRef)
-    ccall((:LLVMSizeOfTypeInBits,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef),arg1,arg2)
+function LLVMIntPtrTypeInContext(C::LLVMContextRef,TD::LLVMTargetDataRef)
+    ccall((:LLVMIntPtrTypeInContext,libllvm),LLVMTypeRef,(LLVMContextRef,LLVMTargetDataRef),C,TD)
 end
-function LLVMStoreSizeOfType(arg1::LLVMTargetDataRef,arg2::LLVMTypeRef)
-    ccall((:LLVMStoreSizeOfType,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef),arg1,arg2)
+function LLVMIntPtrTypeForASInContext(C::LLVMContextRef,TD::LLVMTargetDataRef,AS::Uint32)
+    ccall((:LLVMIntPtrTypeForASInContext,libllvm),LLVMTypeRef,(LLVMContextRef,LLVMTargetDataRef,Uint32),C,TD,AS)
 end
-function LLVMABISizeOfType(arg1::LLVMTargetDataRef,arg2::LLVMTypeRef)
-    ccall((:LLVMABISizeOfType,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef),arg1,arg2)
+function LLVMSizeOfTypeInBits(TD::LLVMTargetDataRef,Ty::LLVMTypeRef)
+    ccall((:LLVMSizeOfTypeInBits,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef),TD,Ty)
 end
-function LLVMABIAlignmentOfType(arg1::LLVMTargetDataRef,arg2::LLVMTypeRef)
-    ccall((:LLVMABIAlignmentOfType,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef),arg1,arg2)
+function LLVMStoreSizeOfType(TD::LLVMTargetDataRef,Ty::LLVMTypeRef)
+    ccall((:LLVMStoreSizeOfType,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef),TD,Ty)
 end
-function LLVMCallFrameAlignmentOfType(arg1::LLVMTargetDataRef,arg2::LLVMTypeRef)
-    ccall((:LLVMCallFrameAlignmentOfType,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef),arg1,arg2)
+function LLVMABISizeOfType(TD::LLVMTargetDataRef,Ty::LLVMTypeRef)
+    ccall((:LLVMABISizeOfType,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef),TD,Ty)
 end
-function LLVMPreferredAlignmentOfType(arg1::LLVMTargetDataRef,arg2::LLVMTypeRef)
-    ccall((:LLVMPreferredAlignmentOfType,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef),arg1,arg2)
+function LLVMABIAlignmentOfType(TD::LLVMTargetDataRef,Ty::LLVMTypeRef)
+    ccall((:LLVMABIAlignmentOfType,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef),TD,Ty)
 end
-function LLVMPreferredAlignmentOfGlobal(arg1::LLVMTargetDataRef,GlobalVar::LLVMValueRef)
-    ccall((:LLVMPreferredAlignmentOfGlobal,libllvm),Uint32,(LLVMTargetDataRef,LLVMValueRef),arg1,GlobalVar)
+function LLVMCallFrameAlignmentOfType(TD::LLVMTargetDataRef,Ty::LLVMTypeRef)
+    ccall((:LLVMCallFrameAlignmentOfType,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef),TD,Ty)
 end
-function LLVMElementAtOffset(arg1::LLVMTargetDataRef,StructTy::LLVMTypeRef,Offset::Culonglong)
-    ccall((:LLVMElementAtOffset,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef,Culonglong),arg1,StructTy,Offset)
+function LLVMPreferredAlignmentOfType(TD::LLVMTargetDataRef,Ty::LLVMTypeRef)
+    ccall((:LLVMPreferredAlignmentOfType,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef),TD,Ty)
 end
-function LLVMOffsetOfElement(arg1::LLVMTargetDataRef,StructTy::LLVMTypeRef,Element::Uint32)
-    ccall((:LLVMOffsetOfElement,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef,Uint32),arg1,StructTy,Element)
+function LLVMPreferredAlignmentOfGlobal(TD::LLVMTargetDataRef,GlobalVar::LLVMValueRef)
+    ccall((:LLVMPreferredAlignmentOfGlobal,libllvm),Uint32,(LLVMTargetDataRef,LLVMValueRef),TD,GlobalVar)
 end
-function LLVMDisposeTargetData(arg1::LLVMTargetDataRef)
-    ccall((:LLVMDisposeTargetData,libllvm),Void,(LLVMTargetDataRef,),arg1)
+function LLVMElementAtOffset(TD::LLVMTargetDataRef,StructTy::LLVMTypeRef,Offset::Culonglong)
+    ccall((:LLVMElementAtOffset,libllvm),Uint32,(LLVMTargetDataRef,LLVMTypeRef,Culonglong),TD,StructTy,Offset)
+end
+function LLVMOffsetOfElement(TD::LLVMTargetDataRef,StructTy::LLVMTypeRef,Element::Uint32)
+    ccall((:LLVMOffsetOfElement,libllvm),Culonglong,(LLVMTargetDataRef,LLVMTypeRef,Uint32),TD,StructTy,Element)
+end
+function LLVMDisposeTargetData(TD::LLVMTargetDataRef)
+    ccall((:LLVMDisposeTargetData,libllvm),Void,(LLVMTargetDataRef,),TD)
+end
+function LLVMGetFirstTarget()
+    ccall((:LLVMGetFirstTarget,libllvm),LLVMTargetRef,())
 end
 function LLVMGetNextTarget(T::LLVMTargetRef)
     ccall((:LLVMGetNextTarget,libllvm),LLVMTargetRef,(LLVMTargetRef,),T)
+end
+function LLVMGetTargetFromName(Name::Ptr{Uint8})
+    ccall((:LLVMGetTargetFromName,libllvm),LLVMTargetRef,(Ptr{Uint8},),Name)
+end
+function LLVMGetTargetFromTriple(Triple::Ptr{Uint8},T::Ptr{LLVMTargetRef},ErrorMessage::Ptr{Ptr{Uint8}})
+    ccall((:LLVMGetTargetFromTriple,libllvm),LLVMBool,(Ptr{Uint8},Ptr{LLVMTargetRef},Ptr{Ptr{Uint8}}),Triple,T,ErrorMessage)
 end
 function LLVMGetTargetName(T::LLVMTargetRef)
     ccall((:LLVMGetTargetName,libllvm),Ptr{Uint8},(LLVMTargetRef,),T)
@@ -1551,17 +1662,30 @@ end
 function LLVMGetTargetMachineData(T::LLVMTargetMachineRef)
     ccall((:LLVMGetTargetMachineData,libllvm),LLVMTargetDataRef,(LLVMTargetMachineRef,),T)
 end
+function LLVMSetTargetMachineAsmVerbosity(T::LLVMTargetMachineRef,VerboseAsm::LLVMBool)
+    ccall((:LLVMSetTargetMachineAsmVerbosity,libllvm),Void,(LLVMTargetMachineRef,LLVMBool),T,VerboseAsm)
+end
 function LLVMTargetMachineEmitToFile(T::LLVMTargetMachineRef,M::LLVMModuleRef,Filename::Ptr{Uint8},codegen::LLVMCodeGenFileType,ErrorMessage::Ptr{Ptr{Uint8}})
     ccall((:LLVMTargetMachineEmitToFile,libllvm),LLVMBool,(LLVMTargetMachineRef,LLVMModuleRef,Ptr{Uint8},LLVMCodeGenFileType,Ptr{Ptr{Uint8}}),T,M,Filename,codegen,ErrorMessage)
 end
 function LLVMTargetMachineEmitToMemoryBuffer(T::LLVMTargetMachineRef,M::LLVMModuleRef,codegen::LLVMCodeGenFileType,ErrorMessage::Ptr{Ptr{Uint8}},OutMemBuf::Ptr{LLVMMemoryBufferRef})
     ccall((:LLVMTargetMachineEmitToMemoryBuffer,libllvm),LLVMBool,(LLVMTargetMachineRef,LLVMModuleRef,LLVMCodeGenFileType,Ptr{Ptr{Uint8}},Ptr{LLVMMemoryBufferRef}),T,M,codegen,ErrorMessage,OutMemBuf)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Target.h
+function LLVMGetDefaultTargetTriple()
+    ccall((:LLVMGetDefaultTargetTriple,libllvm),Ptr{Uint8},())
+end
+function LLVMAddAnalysisPasses(T::LLVMTargetMachineRef,PM::LLVMPassManagerRef)
+    ccall((:LLVMAddAnalysisPasses,libllvm),Void,(LLVMTargetMachineRef,LLVMPassManagerRef),T,PM)
+end
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Target.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Analysis.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Support.h
+# Automatically generated using Clang.jl wrap_c, version 0.0.0
+
+
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Analysis.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1577,7 +1701,7 @@ end
 function LLVMViewFunctionCFGOnly(Fn::LLVMValueRef)
     ccall((:LLVMViewFunctionCFGOnly,libllvm),Void,(LLVMValueRef,),Fn)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Initialization.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Initialization.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1614,7 +1738,7 @@ end
 function LLVMInitializeTarget(R::LLVMPassRegistryRef)
     ccall((:LLVMInitializeTarget,libllvm),Void,(LLVMPassRegistryRef,),R)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/BitWriter.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/BitWriter.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1627,14 +1751,14 @@ end
 function LLVMWriteBitcodeToFileHandle(M::LLVMModuleRef,Handle::Cint)
     ccall((:LLVMWriteBitcodeToFileHandle,libllvm),Cint,(LLVMModuleRef,Cint),M,Handle)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Linker.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Linker.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
 function LLVMLinkModules(Dest::LLVMModuleRef,Src::LLVMModuleRef,Mode::LLVMLinkerMode,OutMessage::Ptr{Ptr{Uint8}})
     ccall((:LLVMLinkModules,libllvm),LLVMBool,(LLVMModuleRef,LLVMModuleRef,LLVMLinkerMode,Ptr{Ptr{Uint8}}),Dest,Src,Mode,OutMessage)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/LinkTimeOptimizer.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/LinkTimeOptimizer.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1650,7 +1774,7 @@ end
 function llvm_optimize_modules(lto::llvm_lto_t,output_filename::Ptr{Uint8})
     ccall((:llvm_optimize_modules,libllvm),llvm_lto_status_t,(llvm_lto_t,Ptr{Uint8}),lto,output_filename)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Object.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Object.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1690,14 +1814,14 @@ end
 function LLVMGetSectionName(SI::LLVMSectionIteratorRef)
     ccall((:LLVMGetSectionName,libllvm),Ptr{Uint8},(LLVMSectionIteratorRef,),SI)
 end
-function LLVMGetSectionSize(SI::LLVMSectionIteratorRef)
-    ccall((:LLVMGetSectionSize,libllvm),Uint64,(LLVMSectionIteratorRef,),SI)
+function LLVMGetSectionSize()
+    ccall((:LLVMGetSectionSize,libllvm),Cint,())
 end
 function LLVMGetSectionContents(SI::LLVMSectionIteratorRef)
     ccall((:LLVMGetSectionContents,libllvm),Ptr{Uint8},(LLVMSectionIteratorRef,),SI)
 end
-function LLVMGetSectionAddress(SI::LLVMSectionIteratorRef)
-    ccall((:LLVMGetSectionAddress,libllvm),Uint64,(LLVMSectionIteratorRef,),SI)
+function LLVMGetSectionAddress()
+    ccall((:LLVMGetSectionAddress,libllvm),Cint,())
 end
 function LLVMGetSectionContainsSymbol(SI::LLVMSectionIteratorRef,Sym::LLVMSymbolIteratorRef)
     ccall((:LLVMGetSectionContainsSymbol,libllvm),LLVMBool,(LLVMSectionIteratorRef,LLVMSymbolIteratorRef),SI,Sym)
@@ -1717,26 +1841,23 @@ end
 function LLVMGetSymbolName(SI::LLVMSymbolIteratorRef)
     ccall((:LLVMGetSymbolName,libllvm),Ptr{Uint8},(LLVMSymbolIteratorRef,),SI)
 end
-function LLVMGetSymbolAddress(SI::LLVMSymbolIteratorRef)
-    ccall((:LLVMGetSymbolAddress,libllvm),Uint64,(LLVMSymbolIteratorRef,),SI)
+function LLVMGetSymbolAddress()
+    ccall((:LLVMGetSymbolAddress,libllvm),Cint,())
 end
-function LLVMGetSymbolFileOffset(SI::LLVMSymbolIteratorRef)
-    ccall((:LLVMGetSymbolFileOffset,libllvm),Uint64,(LLVMSymbolIteratorRef,),SI)
+function LLVMGetSymbolSize()
+    ccall((:LLVMGetSymbolSize,libllvm),Cint,())
 end
-function LLVMGetSymbolSize(SI::LLVMSymbolIteratorRef)
-    ccall((:LLVMGetSymbolSize,libllvm),Uint64,(LLVMSymbolIteratorRef,),SI)
+function LLVMGetRelocationAddress()
+    ccall((:LLVMGetRelocationAddress,libllvm),Cint,())
 end
-function LLVMGetRelocationAddress(RI::LLVMRelocationIteratorRef)
-    ccall((:LLVMGetRelocationAddress,libllvm),Uint64,(LLVMRelocationIteratorRef,),RI)
-end
-function LLVMGetRelocationOffset(RI::LLVMRelocationIteratorRef)
-    ccall((:LLVMGetRelocationOffset,libllvm),Uint64,(LLVMRelocationIteratorRef,),RI)
+function LLVMGetRelocationOffset()
+    ccall((:LLVMGetRelocationOffset,libllvm),Cint,())
 end
 function LLVMGetRelocationSymbol(RI::LLVMRelocationIteratorRef)
     ccall((:LLVMGetRelocationSymbol,libllvm),LLVMSymbolIteratorRef,(LLVMRelocationIteratorRef,),RI)
 end
-function LLVMGetRelocationType(RI::LLVMRelocationIteratorRef)
-    ccall((:LLVMGetRelocationType,libllvm),Uint64,(LLVMRelocationIteratorRef,),RI)
+function LLVMGetRelocationType()
+    ccall((:LLVMGetRelocationType,libllvm),Cint,())
 end
 function LLVMGetRelocationTypeName(RI::LLVMRelocationIteratorRef)
     ccall((:LLVMGetRelocationTypeName,libllvm),Ptr{Uint8},(LLVMRelocationIteratorRef,),RI)
@@ -1744,7 +1865,14 @@ end
 function LLVMGetRelocationValueString(RI::LLVMRelocationIteratorRef)
     ccall((:LLVMGetRelocationValueString,libllvm),Ptr{Uint8},(LLVMRelocationIteratorRef,),RI)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/ExecutionEngine.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/IRReader.h
+# Automatically generated using Clang.jl wrap_c, version 0.0.0
+
+
+function LLVMParseIRInContext(ContextRef::LLVMContextRef,MemBuf::LLVMMemoryBufferRef,OutM::Ptr{LLVMModuleRef},OutMessage::Ptr{Ptr{Uint8}})
+    ccall((:LLVMParseIRInContext,libllvm),LLVMBool,(LLVMContextRef,LLVMMemoryBufferRef,Ptr{LLVMModuleRef},Ptr{Ptr{Uint8}}),ContextRef,MemBuf,OutM,OutMessage)
+end
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/ExecutionEngine.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1790,11 +1918,11 @@ end
 function LLVMCreateJITCompilerForModule(OutJIT::Ptr{LLVMExecutionEngineRef},M::LLVMModuleRef,OptLevel::Uint32,OutError::Ptr{Ptr{Uint8}})
     ccall((:LLVMCreateJITCompilerForModule,libllvm),LLVMBool,(Ptr{LLVMExecutionEngineRef},LLVMModuleRef,Uint32,Ptr{Ptr{Uint8}}),OutJIT,M,OptLevel,OutError)
 end
-function LLVMInitializeMCJITCompilerOptions(Options::Ptr{LLVMMCJITCompilerOptions},SizeOfOptions::Csize_t)
-    ccall((:LLVMInitializeMCJITCompilerOptions,libllvm),Void,(Ptr{LLVMMCJITCompilerOptions},Csize_t),Options,SizeOfOptions)
+function LLVMInitializeMCJITCompilerOptions(Options::Ptr{LLVMMCJITCompilerOptions},SizeOfOptions::Cint)
+    ccall((:LLVMInitializeMCJITCompilerOptions,libllvm),Void,(Ptr{LLVMMCJITCompilerOptions},Cint),Options,SizeOfOptions)
 end
-function LLVMCreateMCJITCompilerForModule(OutJIT::Ptr{LLVMExecutionEngineRef},M::LLVMModuleRef,Options::Ptr{LLVMMCJITCompilerOptions},SizeOfOptions::Csize_t,OutError::Ptr{Ptr{Uint8}})
-    ccall((:LLVMCreateMCJITCompilerForModule,libllvm),LLVMBool,(Ptr{LLVMExecutionEngineRef},LLVMModuleRef,Ptr{LLVMMCJITCompilerOptions},Csize_t,Ptr{Ptr{Uint8}}),OutJIT,M,Options,SizeOfOptions,OutError)
+function LLVMCreateMCJITCompilerForModule(OutJIT::Ptr{LLVMExecutionEngineRef},M::LLVMModuleRef,Options::Ptr{LLVMMCJITCompilerOptions},SizeOfOptions::Cint,OutError::Ptr{Ptr{Uint8}})
+    ccall((:LLVMCreateMCJITCompilerForModule,libllvm),LLVMBool,(Ptr{LLVMExecutionEngineRef},LLVMModuleRef,Ptr{LLVMMCJITCompilerOptions},Cint,Ptr{Ptr{Uint8}}),OutJIT,M,Options,SizeOfOptions,OutError)
 end
 function LLVMCreateExecutionEngine(OutEE::Ptr{LLVMExecutionEngineRef},MP::LLVMModuleProviderRef,OutError::Ptr{Ptr{Uint8}})
     ccall((:LLVMCreateExecutionEngine,libllvm),LLVMBool,(Ptr{LLVMExecutionEngineRef},LLVMModuleProviderRef,Ptr{Ptr{Uint8}}),OutEE,MP,OutError)
@@ -1844,13 +1972,22 @@ end
 function LLVMGetExecutionEngineTargetData(EE::LLVMExecutionEngineRef)
     ccall((:LLVMGetExecutionEngineTargetData,libllvm),LLVMTargetDataRef,(LLVMExecutionEngineRef,),EE)
 end
+function LLVMGetExecutionEngineTargetMachine(EE::LLVMExecutionEngineRef)
+    ccall((:LLVMGetExecutionEngineTargetMachine,libllvm),LLVMTargetMachineRef,(LLVMExecutionEngineRef,),EE)
+end
 function LLVMAddGlobalMapping(EE::LLVMExecutionEngineRef,Global::LLVMValueRef,Addr::Ptr{Void})
     ccall((:LLVMAddGlobalMapping,libllvm),Void,(LLVMExecutionEngineRef,LLVMValueRef,Ptr{Void}),EE,Global,Addr)
 end
 function LLVMGetPointerToGlobal(EE::LLVMExecutionEngineRef,Global::LLVMValueRef)
     ccall((:LLVMGetPointerToGlobal,libllvm),Ptr{Void},(LLVMExecutionEngineRef,LLVMValueRef),EE,Global)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/BitReader.h
+function LLVMCreateSimpleMCJITMemoryManager(Opaque::Ptr{Void},AllocateCodeSection::LLVMMemoryManagerAllocateCodeSectionCallback,AllocateDataSection::LLVMMemoryManagerAllocateDataSectionCallback,FinalizeMemory::LLVMMemoryManagerFinalizeMemoryCallback,Destroy::LLVMMemoryManagerDestroyCallback)
+    ccall((:LLVMCreateSimpleMCJITMemoryManager,libllvm),LLVMMCJITMemoryManagerRef,(Ptr{Void},LLVMMemoryManagerAllocateCodeSectionCallback,LLVMMemoryManagerAllocateDataSectionCallback,LLVMMemoryManagerFinalizeMemoryCallback,LLVMMemoryManagerDestroyCallback),Opaque,AllocateCodeSection,AllocateDataSection,FinalizeMemory,Destroy)
+end
+function LLVMDisposeMCJITMemoryManager(MM::LLVMMCJITMemoryManagerRef)
+    ccall((:LLVMDisposeMCJITMemoryManager,libllvm),Void,(LLVMMCJITMemoryManagerRef,),MM)
+end
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/BitReader.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1872,7 +2009,7 @@ end
 function LLVMGetBitcodeModuleProvider(MemBuf::LLVMMemoryBufferRef,OutMP::Ptr{LLVMModuleProviderRef},OutMessage::Ptr{Ptr{Uint8}})
     ccall((:LLVMGetBitcodeModuleProvider,libllvm),LLVMBool,(LLVMMemoryBufferRef,Ptr{LLVMModuleProviderRef},Ptr{Ptr{Uint8}}),MemBuf,OutMP,OutMessage)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Disassembler.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Disassembler.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1882,16 +2019,16 @@ end
 function LLVMCreateDisasmCPU(Triple::Ptr{Uint8},CPU::Ptr{Uint8},DisInfo::Ptr{Void},TagType::Cint,GetOpInfo::LLVMOpInfoCallback,SymbolLookUp::LLVMSymbolLookupCallback)
     ccall((:LLVMCreateDisasmCPU,libllvm),LLVMDisasmContextRef,(Ptr{Uint8},Ptr{Uint8},Ptr{Void},Cint,LLVMOpInfoCallback,LLVMSymbolLookupCallback),Triple,CPU,DisInfo,TagType,GetOpInfo,SymbolLookUp)
 end
-function LLVMSetDisasmOptions(DC::LLVMDisasmContextRef,Options::Uint64)
-    ccall((:LLVMSetDisasmOptions,libllvm),Cint,(LLVMDisasmContextRef,Uint64),DC,Options)
+function LLVMSetDisasmOptions(DC::LLVMDisasmContextRef,Options::Cint)
+    ccall((:LLVMSetDisasmOptions,libllvm),Cint,(LLVMDisasmContextRef,Cint),DC,Options)
 end
 function LLVMDisasmDispose(DC::LLVMDisasmContextRef)
     ccall((:LLVMDisasmDispose,libllvm),Void,(LLVMDisasmContextRef,),DC)
 end
-function LLVMDisasmInstruction(DC::LLVMDisasmContextRef,Bytes::Ptr{Uint8},BytesSize::Uint64,PC::Uint64,OutString::Ptr{Uint8},OutStringSize::Csize_t)
-    ccall((:LLVMDisasmInstruction,libllvm),Csize_t,(LLVMDisasmContextRef,Ptr{Uint8},Uint64,Uint64,Ptr{Uint8},Csize_t),DC,Bytes,BytesSize,PC,OutString,OutStringSize)
+function LLVMDisasmInstruction()
+    ccall((:LLVMDisasmInstruction,libllvm),Cint,())
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Transforms/Vectorize.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Transforms/Vectorize.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1904,7 +2041,7 @@ end
 function LLVMAddSLPVectorizePass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddSLPVectorizePass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Transforms/IPO.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Transforms/IPO.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1950,7 +2087,7 @@ end
 function LLVMAddStripSymbolsPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddStripSymbolsPass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Transforms/Scalar.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Transforms/Scalar.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
@@ -1962,6 +2099,9 @@ function LLVMAddCFGSimplificationPass(PM::LLVMPassManagerRef)
 end
 function LLVMAddDeadStoreEliminationPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddDeadStoreEliminationPass,libllvm),Void,(LLVMPassManagerRef,),PM)
+end
+function LLVMAddScalarizerPass(PM::LLVMPassManagerRef)
+    ccall((:LLVMAddScalarizerPass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
 function LLVMAddGVNPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddGVNPass,libllvm),Void,(LLVMPassManagerRef,),PM)
@@ -1987,6 +2127,9 @@ end
 function LLVMAddLoopRotatePass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddLoopRotatePass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
+function LLVMAddLoopRerollPass(PM::LLVMPassManagerRef)
+    ccall((:LLVMAddLoopRerollPass,libllvm),Void,(LLVMPassManagerRef,),PM)
+end
 function LLVMAddLoopUnrollPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddLoopUnrollPass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
@@ -1995,6 +2138,9 @@ function LLVMAddLoopUnswitchPass(PM::LLVMPassManagerRef)
 end
 function LLVMAddMemCpyOptPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddMemCpyOptPass,libllvm),Void,(LLVMPassManagerRef,),PM)
+end
+function LLVMAddPartiallyInlineLibCallsPass(PM::LLVMPassManagerRef)
+    ccall((:LLVMAddPartiallyInlineLibCallsPass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
 function LLVMAddPromoteMemoryToRegisterPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddPromoteMemoryToRegisterPass,libllvm),Void,(LLVMPassManagerRef,),PM)
@@ -2044,7 +2190,7 @@ end
 function LLVMAddBasicAliasAnalysisPass(PM::LLVMPassManagerRef)
     ccall((:LLVMAddBasicAliasAnalysisPass,libllvm),Void,(LLVMPassManagerRef,),PM)
 end
-# Julia wrapper for header: /cmn/julia/deps/llvm-3.3/include/llvm-c/Transforms/PassManagerBuilder.h
+# Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Transforms/PassManagerBuilder.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
 
