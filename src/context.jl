@@ -1,7 +1,8 @@
 #------------------------------------------------------------------------------
 # Context 
 #------------------------------------------------------------------------------
-export Context, create_ctx, global_ctx, dispose_ctx, with_ctx, with_global_ctx
+export Context, 
+       create_ctx, global_ctx, dispose!, with_ctx, with_global_ctx
 
 immutable ContextHandle
     ptr::Ptr{Void}
@@ -17,7 +18,7 @@ type Context
 
     Context(handle::ContextHandle, isglobal=false) = begin
         ctx = new(handle, isglobal, false)
-        !isglobal && finalizer(ctx, dispose_ctx)
+        !isglobal && finalizer(ctx, dispose!)
         return ctx
     end 
 end 
@@ -40,22 +41,23 @@ isglobalctx(c::Context) = c.isglobal
 
 isdisposed(c::Context) = c.disposed
 
-dispose_ctx(c::ContextHandle) = begin
-    ccall((:LLVMContextDispose, libllvm), Void, (ContextHandle,), c)
-end
-dispose_ctx(c::Context) = begin
+dispose!(c::Context) = begin
     if !(isdisposed(c) || isglobalctx(c))
-        dispose_ctx(c.handle)
+        dispose!(c.handle)
         c.disposed = true 
     end 
 end 
+
+dispose!(c::ContextHandle) = begin
+    ccall((:LLVMContextDispose, libllvm), Void, (ContextHandle,), c)
+end
 
 with_ctx(f::Function) = begin
     ctx = create_ctx() 
     try
         f(ctx)
     finally
-        dispose_ctx(ctx)
+        dispose!(ctx)
     end
 end
 
