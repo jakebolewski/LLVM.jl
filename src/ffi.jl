@@ -273,21 +273,6 @@ end
 function get_block_address_block()
 end
 
-#------------------------------------------------------------------------------
-# Context 
-#------------------------------------------------------------------------------
-
-# http://llvm.org/doxygen/group__LLVMCCoreContext.html#gaac4f39a2d0b9735e64ac7681ab543b4c
-function create_ctx()
-end
-
-# http://llvm.org/doxygen/group__LLVMCCoreContext.html#ga0055cde9a9b2497b332d639d8844a810
-function get_global_ctx()
-end
-
-# http://llvm.org/doxygen/group__LLVMCCoreContext.html#ga9cf8b0fb4a546d4cdb6f64b8055f5f57
-function dispose_ctx()
-end
 
 #------------------------------------------------------------------------------
 # Context 

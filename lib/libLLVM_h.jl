@@ -1,7 +1,6 @@
 # Julia wrapper for header: /cmn/jldev/deps/llvm-svn/include/llvm-c/Core.h
 # Automatically generated using Clang.jl wrap_c, version 0.0.0
 
-
 function LLVMLoadLibraryPermanently(Filename::Ptr{Uint8})
     ccall((:LLVMLoadLibraryPermanently,libllvm),LLVMBool,(Ptr{Uint8},),Filename)
 end
