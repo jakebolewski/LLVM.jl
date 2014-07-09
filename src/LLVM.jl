@@ -6,6 +6,7 @@ include(joinpath("..", "deps", "ext.jl"))
 include("ast.jl")
 include("datalayout.jl")
 include("ffi.jl")
+include("handle.jl")
 include("context.jl")
 
 end # module

@@ -4,20 +4,16 @@
 export Context, 
        create_ctx, global_ctx, dispose!, with_ctx, with_global_ctx
 
-immutable ContextHandle
+immutable ContextHandle <: LLVMHandle
     ptr::Ptr{Void}
-end 
-
-Base.convert(::Type{Ptr{Void}}, handle::ContextHandle) = handle.ptr
-Base.(:(==))(h1::ContextHandle, h2::ContextHandle) = h1.ptr === h2.ptr
+end
 
 type Context
     handle::ContextHandle
     isglobal::Bool
-    disposed::Bool
 
     Context(handle::ContextHandle, isglobal=false) = begin
-        ctx = new(handle, isglobal, false)
+        ctx = new(handle, isglobal)
         !isglobal && finalizer(ctx, dispose!)
         return ctx
     end 
@@ -39,12 +35,10 @@ isglobalctx(c::Context) = c.isglobal
 
 # http://llvm.org/doxygen/group__LLVMCCoreContext.html#ga9cf8b0fb4a546d4cdb6f64b8055f5f57
 
-isdisposed(c::Context) = c.disposed
-
 dispose!(c::Context) = begin
-    if !(isdisposed(c) || isglobalctx(c))
+    if !(isnull(c.handle) || isglobalctx(c))
         dispose!(c.handle)
-        c.disposed = true 
+        c.handle = ContextHandle(C_NULL)
     end 
 end 
 

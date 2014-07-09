@@ -6,7 +6,7 @@ facts("Context") do
         ctx = LLVM.create_ctx()
         @fact isa(ctx, LLVM.Context) => true
         LLVM.dispose!(ctx)
-        @fact LLVM.isdisposed(ctx) => true
+        @fact LLVM.isnull(ctx.handle) => true
     end
 
     context("simple global context constructor test") do
