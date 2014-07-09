@@ -1,10 +1,12 @@
 using BinDeps
 
-ENV["JULIA_ROOT"] = abspath(JULIA_HOME, "../../")
+JULIA_ROOT = abspath(JULIA_HOME, "../../")
+
+ENV["JULIA_ROOT"] = JULIA_ROOT
 
 cd(joinpath(Pkg.dir(), "LLVM", "deps", "src") )
 
-# Build libLLVMGeneral library
+# Build libllvmgeneral library
 run(`make clean`)
 run(`make`)
 
@@ -19,7 +21,9 @@ const LIBNAME = "libllvmgeneral.$(BinDeps.shlib_ext)"
 mv(LIBNAME, joinpath(USRLIBDIR, LIBNAME))
 
 # Generate ext.jl with hardcoded paths to llvm libraries
-LLVMVER = readchomp(`llvm-config --version`)
+#LLVM_CONFIG = "$JULIA_ROOT/usr/bin/llvm-config"
+LLVM_CONFIG = "llvm-config"
+LLVMVER = readchomp(`$LLVM_CONFIG --version`)
 
 lv = VersionNumber(map(int, split(LLVMVER, ['.', '-']))...)
 if lv.major != 3 || lv.minor < 4

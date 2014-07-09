@@ -7,17 +7,17 @@ endif
 .PHONY: all clean check-env default
 
 check-env:
-#ifndef JULIA_ROOT
-#  $(error Environment variable JULIA_ROOT is not set.)
-#endif
+ifndef JULIA_ROOT
+  $(error Environment variable JULIA_ROOT is not set.)
+endif
 
 JULIA_ROOT = /home/jake/Julia/julia
 
 CC  = clang
 CXX = clang
 
-#TODO: need llvm 3.4 or 3.5 so change this when I build julia with llvm-svn
-LLVM_CONFIG ?= /usr/bin/llvm-config
+#LLVM_CONFIG ?= $(JULIA_ROOT)/usr/bin/llvm-config
+LLVM_CONFIG = /usr/bin/llvm-config
 
 LLVM_VER = $(shell $(LLVM_CONFIG) --version)
 
