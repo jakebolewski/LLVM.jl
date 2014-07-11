@@ -289,13 +289,16 @@ typealias CallableOperand Union(Operand, InlineAssembly)
 # -----------------------------------------------------------------------------
 abstract Constant <: LLVMAstNode
 
+typealias MaybeConstant Union(Nothing, Constant)
+
 immutable ConstInt <: Constant
     bits::Int
     val::Integer
 end
 
-Base.convert{T<:Integer}(::Type{Union(Nothing, Constant)}, v::T) = convert(Constant, v)
 Base.convert{T<:Integer}(::Type{Constant}, v::T) = ConstInt(sizeof(T)*8, v)
+Base.convert{T<:Integer}(::Type{MaybeConstant}, v::T) = convert(Constant, v)
+Base.convert(::Type{MaybeConstant}, n::Nothing) = nothing
 
 immutable ConstFloat <: Constant 
     val::LLVMFloat
