@@ -6,6 +6,8 @@ abstract LLVMAstNode
 
 abstract LLVMLinkage <: LLVMAstNode
 
+immutable ExternalLink <: LLVMLinkage end
+
 typealias LLVMFloat Union(Float16, Float32, Float64)
 
 # -----------------------------------------------------------------------------
@@ -169,6 +171,9 @@ immutable IntType <: LLVMType
     nbits::Int
 end
 
+Base.convert(::Type{LLVMType}, ::Type{Uint32}) = IntType(32)
+Base.convert(::Type{LLVMType}, ::Type{Int32})  = IntType(32)
+
 # http://llvm.org/docs/LangRef.html#pointer-type
 immutable PtrType <: LLVMType
     typ::LLVMType
@@ -284,16 +289,19 @@ typealias CallableOperand Union(Operand, InlineAssembly)
 # -----------------------------------------------------------------------------
 abstract Constant <: LLVMAstNode
 
-# TODO: it might make more sense to treat these as literal Julia values,
-# and infer bits from the type
 immutable ConstInt <: Constant
     bits::Int
     val::Integer
 end
 
+Base.convert{T<:Integer}(::Type{Union(Nothing, Constant)}, v::T) = convert(Constant, v)
+Base.convert{T<:Integer}(::Type{Constant}, v::T) = ConstInt(sizeof(T)*8, v)
+
 immutable ConstFloat <: Constant 
     val::LLVMFloat
 end
+
+Base.convert{T<:LLVMFloat}(::Type{Constant}, v::T) = ConstFloat(v)
 
 immutable ConstNull <: Constant
     typ::LLVMType
@@ -822,6 +830,7 @@ type GlobalVar <: LLVMGlobal
     name::LLVMName
     linkage::LLVMLinkage
     visibility::Visibility
+    threadlocal::Bool
     addrspace::AddrSpace
     unamedaddr::Bool
     isconst::Bool
@@ -830,6 +839,30 @@ type GlobalVar <: LLVMGlobal
     section::Union(Nothing, String)
     alignment::Int
 end 
+
+GlobalVar(;name=error("global variable name not defined"),
+           linkage=ExternalLink(),
+           visibility=DefaultVisibility(),
+           threadlocal=false,
+           addrspace=AddrSpace(0),
+           has_unnamed_addr=false,
+           isconst=false,
+           typ=error("global variable typ not defined"),
+           init=nothing,
+           section=nothing,
+           alignment=0) = begin
+    GlobalVar(name,
+              linkage,
+              visibility,
+              threadlocal,
+              addrspace,
+              has_unnamed_addr,
+              isconst,
+              typ,
+              init,
+              section,
+              alignment)
+end
 
 # http://llvm.org/docs/LangRef.html#aliases 
 type GlobalAlias <: LLVMGlobal

@@ -1,5 +1,7 @@
 module LLVM
 
+export Ast
+
 include(joinpath("..", "deps", "ext.jl"))
 
 #include("types.jl")
