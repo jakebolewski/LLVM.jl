@@ -10,5 +10,6 @@ include("datalayout.jl")
 include("ffi.jl")
 include("handle.jl")
 include("context.jl")
+include("module.jl")
 
 end # module

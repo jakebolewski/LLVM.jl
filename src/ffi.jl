@@ -1065,6 +1065,12 @@ end
 function void_type_in_ctx()
 end
 
+# http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#ga2e5db8cbc30daa156083f2c42989138d
+#=
+int_type_in_ctx(ch::ContextHandle, nbits::Uint32) =
+    ccall((:LLVMIntTypeInContext, libllvm), TypeHandle, (ContextHandle, Uint32), ch, nbits)
+=#
+
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga3a5332a1d075602bccad7576d1a8e36f
 function half_type_in_ctx()
 end 

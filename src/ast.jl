@@ -6,7 +6,7 @@ abstract LLVMAstNode
 
 abstract LLVMLinkage <: LLVMAstNode
 
-immutable ExternalLink <: LLVMLinkage end
+immutable Linkage{T} <: LLVMLinkage end
 
 typealias LLVMFloat Union(Float16, Float32, Float64)
 
@@ -292,7 +292,7 @@ abstract Constant <: LLVMAstNode
 typealias MaybeConstant Union(Nothing, Constant)
 
 immutable ConstInt <: Constant
-    bits::Int
+    nbits::Int
     val::Integer
 end
 
@@ -844,7 +844,7 @@ type GlobalVar <: LLVMGlobal
 end 
 
 GlobalVar(;name=error("global variable name not defined"),
-           linkage=ExternalLink(),
+           linkage=Linkage{:External}(),
            visibility=DefaultVisibility(),
            threadlocal=false,
            addrspace=AddrSpace(0),

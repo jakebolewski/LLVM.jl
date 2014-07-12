@@ -35,3 +35,9 @@ facts("test constants") do
                             "global i66 20000000000000000000")
     end
 end 
+
+#=
+ctx = LLVM.global_ctx()
+ast, asm = test_ast(Uint32, one(Uint32), "global i32 1")
+LLVM.module_from_ast(ctx, ast)
+=#
