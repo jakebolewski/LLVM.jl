@@ -2,11 +2,10 @@ module FFI
 
 import ..libllvm, ..libllvmgeneral
 
+include("types.jl")
+
 typealias ModulePtrPtr{Void}
 typealias FailureAction Ptr{Void}
-
-# TODO: LLVM CTypes
-typealias LLVMBool Cuint
 
 #------------------------------------------------------------------------------
 # Analysis 
@@ -225,8 +224,9 @@ end
 function get_constant_data_seq_elem_as_const()
 end 
 
-function const_int_arbitrary_precision()
-end 
+const_int_arbitrary_precision(typ::TypePtr, nwords::Integer, words::Vector{Int64}) = 
+    ccall((:LLVMConstIntOfArbitraryPrecision, libllvm), ValuePtr,
+          (TypePtr, Uint32, Ptr{Int64}), typ, nwords, words)
 
 function const_float_arbitrary_precision()
 end
@@ -423,8 +423,8 @@ end
 function get_linkage()
 end
 
-function set_linkage()
-end
+set_linkage!(val::GlobalValuePtr, link::Uint32) = 
+    ccall((:LLVMSetLinkage, libllvm), Void, (GlobalValuePtr, Uint32), val, link)
 
 function get_section()
 end
@@ -435,20 +435,22 @@ end
 function get_visibility()
 end
 
-function set_visibility()
-end
+set_visibility!(val::GlobalValuePtr, vis::Uint32) = 
+    ccall((:LLVMSetVisibility, libllvm), Void, (GlobalValuePtr, Uint32), val, vis)
 
 function get_alignment()
 end
 
-function set_alignment()
-end
+set_alignment!(val::GlobalValuePtr, bytes::Integer) =
+    ccall((:LLVMSetAlignment, libllvm), Void, (GlobalValuePtr, Uint32), val, bytes)
 
 function has_unnamed_addr()
 end 
 
-function set_unnamed_addr()
-end
+# todo this is exposed by the C API in LLVM 3.5
+set_unnamed_addr!(val::ValuePtr, hasunamed::Bool) =
+    ccall((:LLVM_General_SetUnnamedAddr, libllvmgeneral), Void,
+          (ValuePtr, LLVMBool), val, hasunamed)
 
 #------------------------------------------------------------------------------
 # Global Variable 
@@ -460,20 +462,17 @@ end
 function is_global_constant()
 end
 
-function set_global_constant()
-end
+set_global_constant!(val::GlobalValuePtr, isconst::Bool) =
+    ccall((:LLVMSetGlobalConstant, libllvm), Void, (GlobalValuePtr, LLVMBool), val, isconst)
 
-function get_initializer()
-end
-
-function set_initializer()
-end
-
+set_initializer!(val::GlobalValuePtr, constval::ValuePtr) = 
+    ccall((:LLVMSetInitializer, libllvm), Void, (GlobalValuePtr, ValuePtr), gval, constval)
+ 
 function is_thread_local()
 end
 
-function set_thread_local()
-end
+set_thread_local!(val::GlobalValuePtr, islocal::Bool) =
+    ccall((:LLVMSetThreadLocal, libllvm), Void, (GlobalValuePtr, LLVMBool), val, islocal)
 
 #------------------------------------------------------------------------------
 # Inline Assembly
@@ -689,39 +688,40 @@ end
 #------------------------------------------------------------------------------
 # Module 
 #------------------------------------------------------------------------------
-function create_module_with_name_in_ctx()
-end
+create_module_with_name_in_ctx(id::String, ctx::ContextPtr) = 
+    ccall((:LLVMModuleCreateWithNameInContext, libllvm), ModulePtr,
+          (Ptr{Uint8}, ContextPtr), id, ctx)
 
-function create_module_with_name(name::String)
-    return ccall((:LLVMModuleCreateWithName, libllvm), Ptr{Void}, (Ptr{Uint8},), name)
-end
+create_module_with_name(name::String) = 
+    ccall((:LLVMModuleCreateWithName, libllvm), ModulePtr, (Ptr{Uint8},), name)
 
-function get_module_ctx()
-end
+get_module_ctx(mod::ModulePtr) = 
+    ccall((:LLVMGetModuleContext, libllvm), ContextPtr, (ModulePtr,), mod)
 
-function dispose_module()
-end
+dispose_module(mod::ModulePtr) = 
+    ccall((:LLVMDisposeModule, libllvm), Void, (ModulePtr,), mod)
 
-function get_datalayout()
-end
+get_datalayout(mod::ModulePtr) =
+    bytestring(ccall((:LLVMGetDataLayout, libllvm), Ptr{Uint8}, (ModulePtr,), mod))
 
-function set_datalayout()
-end
+set_datalayout!(mod::ModulePtr, triple::String) = 
+    ccall((:LLVMSetDataLayout, libllvm), Void, (ModulePtr, Ptr{Uint8}), mod, triple)
 
-function get_target_triple()
-end
+get_target_triple(mod::ModulePtr) =  
+    bytestring(ccall((:LLVMGetTarget, libllvm), Ptr{Uint8}, (ModulePtr,), mod))
 
-function set_target_triple()
-end
+set_target_triple(mod::ModulePtr, triple::String) = 
+    ccall((:LLVMSetTarget, libllvm), Void, (ModulePtr, Ptr{Uint8}), mod, triple)
 
-function get_module_id()
-end
+get_module_id(mod::ModulePtr) =  
+    bytestring(ccall((:LLVM_General_GetModuleIdentifier, libllvmgeneral), Ptr{Uint8}, 
+                     (ModulePtr,), mod))
 
-function get_first_global()
-end
+get_first_global(mod::ModulePtr) = 
+    ccall((:LLVMGetFirstGlobal, libllvm), GlobalValuePtr, (ModulePtr,), mod)
 
-function get_next_global()
-end
+get_next_global(gv::GlobalValuePtr) = 
+    ccall((:LLVMGetNextGlobal, libllvm), GlobalValuePtr, (GlobalValuePtr,), gv)
 
 function get_first_alias()
 end
@@ -741,8 +741,9 @@ end
 function get_next_named_md()
 end
 
-function add_global_in_addr_space()
-end 
+add_global_in_addr_space!(mod::ModulePtr, typ::TypePtr, name::String, addr::Uint32) = 
+    ccall((:LLVMAddGlobalInAddressSpace, libllvm), GlobalValuePtr, 
+          (ModulePtr, TypePtr, Ptr{Uint8}, Uint32), mod, typ, name, addr)
 
 function just_add_alias()
 end 
@@ -970,12 +971,12 @@ end
 #------------------------------------------------------------------------------
 
 # http://llvm.org/doxygen/group__LLVMCCoreType.html#ga112756467f0988613faa6043d674d843
-function get_type_kind()
-end
+get_type_kind(typ::TypePtr) =
+    ccall((:LLVMGetTypeKind, libllvm), Uint32, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#gadfb8ba2f605f0860a4bf2e3c480ab6a2
-function get_int_type_width()
-end
+get_int_type_width(typ::TypePtr) = 
+    ccall((:LLVMGetIntTypeWidth, libllvm), Uint32, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#ga2970f0f4d9ee8a0f811f762fb2fa7f82
 function is_func_var_arg()
@@ -994,8 +995,8 @@ function get_param_types()
 end
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga0b03e26a2d254530a9b5c279cdf52257
-function get_elem_type()
-end
+get_elem_type(typ::TypePtr) = 
+    ccall((:LLVMGetElementType, libllvm), TypePtr, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#ga2e5db8cbc30daa156083f2c42989138d
 function init_type_in_ctx()
@@ -1010,8 +1011,8 @@ function ptr_type()
 end
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga124b162b69b5def41dde2fda3668cbd9
-function get_ptr_address_space()
-end
+get_ptr_address_space(typ::TypePtr) = 
+    ccall((:LLVMGetPointerAddressSpace, libllvm), Uint32, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga5ec731adf74fb40bc3b401956d0c6ff2
 function vector_type()
@@ -1066,10 +1067,8 @@ function void_type_in_ctx()
 end
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#ga2e5db8cbc30daa156083f2c42989138d
-#=
-int_type_in_ctx(ch::ContextHandle, nbits::Uint32) =
-    ccall((:LLVMIntTypeInContext, libllvm), TypeHandle, (ContextHandle, Uint32), ch, nbits)
-=#
+int_type_in_ctx(ctx::ContextPtr, nbits::Uint32) =
+    ccall((:LLVMIntTypeInContext, libllvm), TypePtr, (ContextPtr, Uint32), ctx, nbits)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga3a5332a1d075602bccad7576d1a8e36f
 function half_type_in_ctx()
@@ -1123,12 +1122,15 @@ end
 #------------------------------------------------------------------------------
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#ga12179f46b79de8436852a4189d4451e0
-function llvm_typeof()
-end
+llvm_typeof(val::ValuePtr) =
+    ccall((:LLVMTypeOf, libllvm), TypePtr, (ValuePtr,), val)
+
+llvm_typeof(val::GlobalValuePtr) =
+    ccall((:LLVMTypeOf, libllvm), TypePtr, (GlboalValuePtr,), val)
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#ga70948786725c43968d15225dd584e5a9
-function get_value_name()
-end
+get_value_name(val::ValuePtr) =
+    bytestring(ccall((:LLVMGetValueName, libllvm), Ptr{Uint8}, (ValuePtr,), val))
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#gac1f61f74d83d218d4943c018e8fd8d13
 function set_value_name()
