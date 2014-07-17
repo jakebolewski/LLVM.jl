@@ -277,6 +277,17 @@ end
 #------------------------------------------------------------------------------
 # Context 
 #------------------------------------------------------------------------------
+
+# http://llvm.org/doxygen/group__LLVMCCoreContext.html#gaac4f39a2d0b9735e64ac7681ab543b4c
+create_ctx() = ccall((:LLVMContextCreate, libllvm), ContextPtr, ())
+
+# http://llvm.org/doxygen/group__LLVMCCoreContext.html#ga0055cde9a9b2497b332d639d8844a810
+global_ctx() = ccall((:LLVMGetGlobalContext, libllvm), ContextPtr, ())
+
+# http://llvm.org/doxygen/group__LLVMCCoreContext.html#ga9cf8b0fb4a546d4cdb6f64b8055f5f57
+dispose_ctx(ctx::ContextPtr) = 
+    ccall((:LLVMContextDispose, libllvm), Void, (ContextPtr,), ctx)
+
 function create_datalayout()
 end
 
@@ -688,12 +699,12 @@ end
 #------------------------------------------------------------------------------
 # Module 
 #------------------------------------------------------------------------------
-create_module_with_name_in_ctx(id::String, ctx::ContextPtr) = 
-    ccall((:LLVMModuleCreateWithNameInContext, libllvm), ModulePtr,
-          (Ptr{Uint8}, ContextPtr), id, ctx)
-
 create_module_with_name(name::String) = 
     ccall((:LLVMModuleCreateWithName, libllvm), ModulePtr, (Ptr{Uint8},), name)
+
+create_module_with_name_in_ctx(id::String, ctx::ContextPtr) =
+    ccall((:LLVMModuleCreateWithNameInContext, libllvm), ModulePtr,
+          (Ptr{Uint8}, ContextPtr), id, ctx)
 
 get_module_ctx(mod::ModulePtr) = 
     ccall((:LLVMGetModuleContext, libllvm), ContextPtr, (ModulePtr,), mod)

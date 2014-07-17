@@ -82,7 +82,7 @@ take_type_to_define(ds::DecodeState) =
     (pop!(ds.types_to_define); return ds)
 
 module_from_ast(ctx::Context, mod::Ast.Module) = begin
-    mod_ptr = FFI.create_module_with_name_in_ctx(mod.name, ctx)    
+    mod_ptr = FFI.create_module_with_name_in_ctx(mod.name, ctx.handle)
     mod.layout !== nothing && FFI.set_datalayout!(mod_ptr, mod.layout) 
     mod.target !== nothing && FFI.set_target_triple!(mod_ptr, mod.target)
     for def in mod.defs
