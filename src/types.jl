@@ -1,3 +1,5 @@
+module Types
+
 export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, isnull
 
 typealias LLVMBool Cint
@@ -80,7 +82,7 @@ immutable InstructionPtr <: LLVMPtr
 end
 
 Base.convert(::Type{ValuePtr}, ptr::InstructionPtr) = ValuePtr(ptr.ptr)
-Base.convert(::Type{UserPtr},  ptr::InstructionPtr  = UserPtr(ptr.ptr)
+Base.convert(::Type{UserPtr},  ptr::InstructionPtr)  = UserPtr(ptr.ptr)
 
 immutable BinaryOpPtr <: LLVMPtr
     ptr::Ptr{Void}
@@ -114,4 +116,6 @@ Base.convert(::Type{ValuePtr}, ptr::InlineAsmPtr) = ValuePtr(ptr.ptr)
 
 immutable TypePtr <: LLVMPtr
     ptr::Ptr{Void}
+end
+
 end

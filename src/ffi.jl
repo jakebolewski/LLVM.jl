@@ -1,8 +1,8 @@
 module FFI
 
-import ..libllvm, ..libllvmgeneral
+using ..Types
 
-include("types.jl")
+import ..libllvm, ..libllvmgeneral
 
 typealias ModulePtrPtr{Void}
 typealias FailureAction Ptr{Void}
@@ -459,7 +459,7 @@ function has_unnamed_addr()
 end 
 
 # todo this is exposed by the C API in LLVM 3.5
-set_unnamed_addr!(val::ValuePtr, hasunamed::Bool) =
+set_unnamed_addr!(val, hasunamed::Bool) =
     ccall((:LLVM_General_SetUnnamedAddr, libllvmgeneral), Void,
           (ValuePtr, LLVMBool), val, hasunamed)
 
@@ -477,7 +477,7 @@ set_global_constant!(val::GlobalValuePtr, isconst::Bool) =
     ccall((:LLVMSetGlobalConstant, libllvm), Void, (GlobalValuePtr, LLVMBool), val, isconst)
 
 set_initializer!(val::GlobalValuePtr, constval::ValuePtr) = 
-    ccall((:LLVMSetInitializer, libllvm), Void, (GlobalValuePtr, ValuePtr), gval, constval)
+    ccall((:LLVMSetInitializer, libllvm), Void, (GlobalValuePtr, ValuePtr), val, constval)
  
 function is_thread_local()
 end
@@ -1133,14 +1133,11 @@ end
 #------------------------------------------------------------------------------
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#ga12179f46b79de8436852a4189d4451e0
-llvm_typeof(val::ValuePtr) =
+llvm_typeof(val) =
     ccall((:LLVMTypeOf, libllvm), TypePtr, (ValuePtr,), val)
 
-llvm_typeof(val::GlobalValuePtr) =
-    ccall((:LLVMTypeOf, libllvm), TypePtr, (GlboalValuePtr,), val)
-
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#ga70948786725c43968d15225dd584e5a9
-get_value_name(val::ValuePtr) =
+get_value_name(val) =
     bytestring(ccall((:LLVMGetValueName, libllvm), Ptr{Uint8}, (ValuePtr,), val))
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#gac1f61f74d83d218d4943c018e8fd8d13
