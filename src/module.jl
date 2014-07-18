@@ -46,9 +46,6 @@ type DecodeState
     local_name_counter::Int
     named_type_num::Dict{TypePtr,Int}
     types_to_define::Vector{TypePtr}
-    #metadata_to_define
-    #metadata_nodes
-    #meetadata_kinds
 end
 DecodeState() = DecodeState(Dict{GlobalValuePtr,Int}(),
                             Dict{ValuePtr,Int}(),

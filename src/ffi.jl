@@ -4,104 +4,112 @@ using ..Types
 
 import ..libllvm, ..libllvmgeneral
 
-typealias ModulePtrPtr{Void}
-typealias FailureAction Ptr{Void}
-
 #------------------------------------------------------------------------------
 # Analysis 
 #------------------------------------------------------------------------------
-function verify_module()
-end
+verify_module(mod, on_failure_cfunc, str) = 
+    bool(ccall((:LLVMVerifyModule, libllvm), LLVMBool, 
+               (ModulePtr, Ptr{Void}, Ptr{Uint8}), mod, on_failure_cfunc, str))
 
 #------------------------------------------------------------------------------
 # Assembly 
 #------------------------------------------------------------------------------
 
 # Use LLVM's parser to parse a string of llvm assembly in a memory buffer to get a module
-function parse_llvm_assembly()
-end
+parse_llvm_assembly(ctx, buff, diag) = 
+    ccall((:LLVM_General_ParseLLVMAssembly, libllvmgeneral), ModulePtr,
+          (ContextPtr, Ptr{Uint8}, SMDiagnosticPtr), ctx, buff, diag)
 
 # Use LLVM's serializer to generate a string of llvm assembly from a module 
-function write_llvm_assembly()
-end
+write_llvm_assembly!(io, mod) = 
+    ccall((:LLVM_General_WriteLLVMAssembly, libllvmgeneral), Void,
+          (ModulePtr, RawOStreamPtr), mod, io)
 
 #------------------------------------------------------------------------------
 # Basic Block 
 #------------------------------------------------------------------------------
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueBasicBlock.html#gab57c996ff697ef40966432055ae47a4e
-function isbasicblock()
-end
+isa_basicblock(val) =
+    ccall((:LLVMIsABasicBlock, libllvm), BasicBlockPtr, (ValuePtr,), val) 
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueBasicBlock.html#ga754e45f69f4b784b658d9e379943f354
-function get_basicblock_terminator()
-end
+get_basicblock_terminator(bb) =
+    ccall((:LLVMGetBasicBlockTerminator, libllvm), InstructionPtr, (BasicBlockPtr,), bb)
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueBasicBlock.html#ga9baf824cd325ad211027b23fce8a7494
-function get_first_instruction()
-end
+get_first_instruction(bb) =
+    ccall((:LLVMGetFirstInstruction, libllvm), InstructionPtr, (BasicBlockPtr,), bb)
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueBasicBlock.html#gaa0bb2c95802d06bf94f4c55e61fc3477
-function get_last_instruction()
-end
+get_last_instruction(bb) =
+    ccall((:LLVMGetLastInstruction, libllvm), InstructionPtr, (BasicBlockPtr,), bb)
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueInstruction.html#ga1b4c3bd197e86e8bffdda247ddf8ec5e
-function get_next_instruction()
-end
+get_next_instruction(instr) =
+    ccall((:LLVMGetNextInstruction, libllvm), InstructionPtr, (InstructionPtr,), instr)
 
 #------------------------------------------------------------------------------
 # Binary Operator
 #------------------------------------------------------------------------------
-function isbinaryop()
-end
+isbinaryop(val) =
+    ccall((:LLVMIsABinaryOperator, libllvm), BinaryOpPtr, (ValuePtr,), val)
 
-function no_signed_wrap()
-end
+no_signed_wrap(val) =
+    bool(ccall((:LLVM_General_HasNoSignedWrap, libllvmgeneral), LLVMBool, (ValuePtr,), val))
 
-function no_unsigned_wrap()
-end
+no_unsigned_wrap(bal) =
+    bool(ccall((:LLVM_General_HasNoUnsignedWrap, libllvmgeneral), LLVMBool, (ValuePtr,), val))
 
-function isexact()
-end 
+isexact(val) =
+    bool(ccall((:LLVM_General_IsExact, libllvmgeneral), LLVMBool, (ValuePtr,), val))
 
-function get_fast_math_flags()
-end
+get_fast_math_flags(val) =
+    ccall((:LLVM_General_GetFastMathFlags, libllvmgeneral), Cuint, (ValuePtr,), val)
 
 #------------------------------------------------------------------------------
 # BitCode 
 #------------------------------------------------------------------------------
-function parse_bitcode()
-end
+parse_bitcode(ctx, membuf, str) =
+    ccall((:LLVM_General_ParseBitcode, libllvmgeneral), ModulePtr,
+          (ContextPtr, MemoryBufferPtr, Ptr{Uint8}), ctx, membuf, str)
 
-function write_bitcode()
-end
+write_bitcode(io, mod) = 
+    ccall((:LLVM_General_WriteBitcode, libllvmgeneral), Void,
+          (ModulePtr, RawOStreamPtr), mod, io)
 
 #------------------------------------------------------------------------------
 # Builder 
 #------------------------------------------------------------------------------
-function create_builder_in_ctx()
-end
+create_builder_in_ctx(ctx) =
+    ccall((:LLVMCreateBuilderInContext, libllvm), BuilderPtr, (ContextPtr,), ctx) 
 
-function dispose_builder()
-end
+dispose_builder(bld) =
+    ccall((:LLVMDisposeBuilder, libllvm), Void, (BuilderPtr,), bld)
 
-function pos_builder_end()
-end
+pos_builder_end(bld, bb) = 
+    ccall((:LLVMPositionBuilderAtEnd, libllvm), Void, 
+          (BuilderPtr, BasicBlockPtr), bld, bb) 
 
-function build_ret()
-end
+build_ret(bld, val) = 
+    ccall((:LLVMPositionBuilderAtEnd, libllvm), InstructionPtr,
+          (BuilderPtr, ValuePtr), bld, val)
 
-function build_br()
-end
+build_br(bld, bb) = 
+    ccall((:LLVMBuildCondBr, libllvm), InstructionPtr, 
+          (BuilderPtr, BasicBlockPtr), bld, bb)
 
-function build_cond_br()
-end
+build_cond_br(bld, val, bb1, bb2) =
+    ccall((:LLVMBuildCondBr, libllvm), InstructionPtr,
+          (BuilderPtr, ValuePtr, BasicBlockPtr, BasicBlockPtr), bld, val, bb1, bb2)
 
-function build_switch()
-end 
+build_switch(bld, val, bb, n) =
+    ccall((:LLVMBuildSwitch, libllvm), InstructionPtr,
+          (BuilderPtr, ValuePtr, BasicBlockPtr, Cuint), bld, val, bb, n)
 
-function build_indirect_br()
-end
+build_indirect_br(bld, val, n) =
+    ccall((:LLVMBuildIndirectBr, libllvm), InstructionPtr,
+          (BuilderPtr, ValuePtr, Cuint), bld, val, n)
 
 function build_invoke()
 end
@@ -982,151 +990,161 @@ end
 #------------------------------------------------------------------------------
 
 # http://llvm.org/doxygen/group__LLVMCCoreType.html#ga112756467f0988613faa6043d674d843
-get_type_kind(typ::TypePtr) =
+get_type_kind(typ) =
     ccall((:LLVMGetTypeKind, libllvm), Uint32, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#gadfb8ba2f605f0860a4bf2e3c480ab6a2
-get_int_type_width(typ::TypePtr) = 
+get_int_type_width(typ) = 
     ccall((:LLVMGetIntTypeWidth, libllvm), Uint32, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#ga2970f0f4d9ee8a0f811f762fb2fa7f82
-function is_func_var_arg()
-end
+is_func_var_arg(typ) = 
+    bool(ccall((:LLVMIsFunctionVarArg, libllvm), LLVMBool, (TypePtr,), typ))
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#gacfa4594cbff421733add602a413cae9f
-function get_return_type()
-end
+get_return_type(typ) =
+    ccall((:LLVMGetReturnType, libllvm), TypePtr, (TypePtr,), typ) 
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#ga44fa41d22ed1f589b8202272f54aad77
-function count_param_types()
-end
+count_param_types(typ) =
+    ccall((:LLVMCountParamTypes, libllvm), Cuint, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#ga83dd3a49a0f3f017f4233fc0d667bda2
-function get_param_types()
-end
+get_param_types(typ) = begin
+    n = count_param_types(typ)
+    n == 0 && return TypePtr[]
+    ptyps = Array(TypePtr, n) 
+    ccall((:LLVMGetParamTypes, libllvm), Void, (TypePtr, Ptr{TypePtr}), typ, ptyps)
+    return ptyps
+end 
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga0b03e26a2d254530a9b5c279cdf52257
-get_elem_type(typ::TypePtr) = 
+get_elem_type(typ) = 
     ccall((:LLVMGetElementType, libllvm), TypePtr, (TypePtr,), typ)
-
-# http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#ga2e5db8cbc30daa156083f2c42989138d
-function init_type_in_ctx()
-end
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#ga8b0c32e7322e5c6c1bf7eb95b0961707
 function func_type()
+#TODO:
 end
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga299fe6147083678d0494b1b875f542fae
-function ptr_type()
-end
+ptr_type(typ, addr) = 
+    ccall((:LLVMPointerType, libllvm), TypePtr, (TypePtr, Cuint), typ, addr)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga124b162b69b5def41dde2fda3668cbd9
-get_ptr_address_space(typ::TypePtr) = 
-    ccall((:LLVMGetPointerAddressSpace, libllvm), Uint32, (TypePtr,), typ)
+get_ptr_address_space(typ) = 
+    ccall((:LLVMGetPointerAddressSpace, libllvm), Cuint, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga5ec731adf74fb40bc3b401956d0c6ff2
-function vector_type()
-end 
+vector_type(typ, n) = 
+    ccall((:LLVMVectorType, libllvm), TypePtr, (TypePtr, Cuint), typ, n)
 
 # what http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#gabd1666e080f693e1af0b4018005cd927
-# would be if it supported 64-bit array sizes, as the C++ type does.
-function array_type()
-end
+array_type(typ, n) =
+    ccall((:LLVM_General_ArrayType, libllvm), TypePtr, (TypePtr, Uint64), typ, n)  
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeStruct.html#gaff2af74740a22f7d18701f0d8c3e5a6f
-function struct_type_in_ctx()
+struct_type_in_ctx(ctx, typs, len, packed::Bool) = 
+    ccall((:LLVMStructTypeInContext, libllvm), TypePtr, 
+          (ContextPtr, Ptr{TypePtr}, Cuint, LLVMBool), ctx, typs, len, packed) 
+
+create_named_stuct(ctx, name) =
+    ccall((:LLVM_General_StructCreateNamed, libllvmgeneral), TypePtr,
+          (ContextPtr, Ptr{Uint8}), ctx, name)
+
+get_struct_name(typ) = begin
+    ptr = ccall((:LLVMGetStructName, libllvm), Ptr{Uint8}, (TypePtr,), typ)
+    ptr != C_NULL ? bytestring(ptr) : ""
 end
 
-function create_named_stuct()
-end 
+is_literal_struct(typ) =
+    bool(ccall((:LLVM_General_StructIsLiteral, libllvmgeneral), LLVMBool, (TypePtr,), typ))
 
-function get_struct_name()
-end
-
-function is_literal_struct()
-end 
-
-function is_opaque_struct()
-end
+is_opaque_struct(typ) =
+    bool(ccall((:LLVM_General_StructIsOpaque, libllvmgeneral), LLVMBool, (TypePtr,), typ))
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeStruct.html#ga3e940e660375ae0cbdde81c0d8ec91e3
-function is_packed_struct()
-end
+is_packed_struct(typ) =
+    bool(ccall((:LLVMIsPackedStruct, libllvm), LLVMBool, (TypePtr,), typ))
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeStruct.html#gaf32e6d6bcec38b786efbef689b0dddf7
-function count_struct_elem_types()
+count_struct_elem_types(typ) =
+    ccall((:LLVMCountStructElementTypes, libllvm), Cuint, (TypePtr,), typ)
+
+get_struct_elem_types(typ) = begin
+    n = count_struct_elem_types(typ)
+    n == 0 && return TypePtr[]
+    etyps = Array(TypePtr, n)
+    ccall((:LLVMGetStructElementTypes, libllvm), Void, (TypePtr, Ptr{TypePtr}), typ, etyps)
+    return etyps
 end
 
-function get_struct_elem_types()
-end
-
-function struct_set_body()
-end
+struct_set_body!(typ, typs, len, packed::Bool) =
+    ccall((:LLVMStructSetBody, libllvm), Void,
+          (TypePtr, Ptr{TypePtr}, Cuint, LLVMBool), typ, typs, len, packed)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#gafb88a5ebd2a8062e105854910dc7ca17
-function get_vector_size()
-end
+get_vector_size(typ) =
+    ccall((:LLVMGetVectorSize, libllvm), Cuint, (TypePtr,), typ)
 
 # what http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga02dc08041a12265cb700ee469497df63
-# would be if it supported 64 bit lengths
-function get_array_length()
-end
+get_array_length(typ) =
+    ccall((:LLVM_General_GetArrayLength, libllvm), Uint64, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeOther.html#ga1c78ca6d7bf279330b9195fa52f23828
-function void_type_in_ctx()
-end
+void_type_in_ctx(ctx) =
+    ccall((LLVMVoidTypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeInt.html#ga2e5db8cbc30daa156083f2c42989138d
-int_type_in_ctx(ctx::ContextPtr, nbits::Uint32) =
+int_type_in_ctx(ctx, nbits) =
     ccall((:LLVMIntTypeInContext, libllvm), TypePtr, (ContextPtr, Uint32), ctx, nbits)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga3a5332a1d075602bccad7576d1a8e36f
-function half_type_in_ctx()
-end 
+half_type_in_ctx(ctx) =
+    ccall((:LLVMHalfTypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga529c83a8a5461e5beac19eb867216e3c
-function float_type_in_ctx()
-end
+float_type_in_ctx(ctx) =
+    ccall((:LLVMFloatTypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga200527010747eab31b73d3e3f6d94935
-function double_type_in_ctx()
-end
+double_type_in_ctx(ctx) = 
+    ccall((:LLVMDoubleTypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga24f77b84b625ed3dd516b52480606093
-function x86_fp80_type_in_ctx()
-end 
+x86_fp80_type_in_ctx(ctx) = 
+    ccall((:LLVMX86FP80TypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#ga1c02fb08f9ae12a719ed42099d42ccd8
-function fp128_type_in_ctx()
-end 
+fp128_type_in_ctx(ctx) =
+    ccall((:LLVMFP128TypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFloat.html#gac2491184fc3d8631c7b264c067f2f761
-function ppc_fp128_type_in_ctx()
-end
+ppc_fp128_type_in_ctx(ctx) =
+    ccall((:LLVMPPCFP128TypeInContext, libllvm), TypePtr, (ContextPtr,), ctx)
 
 # http://llvm.org/doxygen/classllvm_1_1Type.html#a28fdf240b8220065bc60d6d1b1a2f174
-function md_type_in_ctx()
-end
+md_type_in_ctx(ctx) =
+    ccall((:LLVM_General_MetadataTypeInContext, libllvmgeneral), TypePtr, (ContextPtr,), ctx)
 
 #------------------------------------------------------------------------------
 # User 
 #------------------------------------------------------------------------------
 
-function isa_user()
-end
+isa_user(val) = 
+    ccall((:LLVMIsAUser, libllvm), UserPtr, (ValuePtr,), val)
 
-function get_first_use()
-end
+get_first_use(usr) = 
+    ccall((:LLVMGetFirstUse, libllvm), UserPtr, (UserPtr,), usr)
 
-function get_next_use()
-end
+get_next_use(usr) =
+    ccall((:LLVMGetNextUse, libllvm), UserPtr, (UserPtr,), usr)
 
-function get_num_operands()
-end
-
-function get_operands()
-end
+get_num_operands(usr) =
+    ccall((:LLVMGetNumOperands, libllvm), Cuint, (UserPtr,), usr)
+    
+get_operand(usr, n) = 
+    ccall((:LLVMGetOperand, libllvm), ValuePtr, (UserPtr, Cuint), usr, n)
 
 #------------------------------------------------------------------------------
 # Value 
@@ -1141,21 +1159,22 @@ get_value_name(val) =
     bytestring(ccall((:LLVMGetValueName, libllvm), Ptr{Uint8}, (ValuePtr,), val))
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#gac1f61f74d83d218d4943c018e8fd8d13
-function set_value_name()
-end
+set_value_name!(val, name) =
+    ccall((:LLVMValueName, libllvm), Void, (ValuePtr, Ptr{Uint8}), val, name)
 
 # This function exposes the ID returned by llvm::Value::getValueID()
 # http://llvm.org/doxygen/classllvm_1_1Value.html#a2983b7b4998ef5b9f51b18c01588af3c
-function get_value_subclass_id()
-end
+get_value_subclass_id(val) = 
+    ccall((:LLVM_General_GetValueSubclassId, libllvmgeneral), Cuint, (ValuePtr,), val)
 
-function replace_all_uses_with()
-end
+replace_all_uses_with!(old, new) = 
+    ccall((:LLVMReplaceAllUsesWith, libllvm), Void, (ValuePtr, ValuePtr), old, new)
 
-function create_argument()
-end
+create_argument(val, arg) = 
+    ccall((:LLVM_General_CreateArgument, libllvmgeneral), ValuePtr, 
+          (ValuePtr, Ptr{Uint8}), val, arg)
 
-function dump_value()
-end
+dump_value(val) = 
+    ccall((:LLVMDumpValue, libllvm), Void, (ValuePtr,), val)
 
 end
