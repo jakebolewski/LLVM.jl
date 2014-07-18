@@ -12,6 +12,24 @@ isnull(h::LLVMPtr) = is(h.ptr, zero(Ptr{Void}))
 Base.convert(::Type{Ptr{Void}}, ptr::LLVMPtr) = ptr.ptr
 Base.(:(==))(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr === p2.ptr
 
+immutable SMDiagnosticPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end 
+
+immutable RawOStreamPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable MemoryBufferPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end 
+
+immutable BuilderPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+#---------------------------------#
+
 immutable ContextPtr <: LLVMPtr
     ptr::Ptr{Void}
 end
