@@ -3,6 +3,7 @@ module Types
 export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, isnull
 
 typealias LLVMBool Cint
+typealias CodeModel Cint
 
 # A LLVMPtr is an immutable type that wraps a void pointer
 abstract LLVMPtr 
@@ -27,6 +28,72 @@ end
 immutable BuilderPtr <: LLVMPtr
     ptr::Ptr{Void}
 end
+
+immutable DataLayoutPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end 
+
+immutable TargetPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable TargetOptionsPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable TargetLibInfoPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable TargetMachinePtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable TargetLoweringPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable OStreamPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable ExeEnginePtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable MemManagerPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable JITCompilerOpts
+    optlevel::Cuint
+    codemodel::CodeModel
+    no_frame_ptr_elim::LLVMBool
+    enable_fast_isel::LLVMBool
+    memory_manager::MemManagerPtr
+
+    JITCompilerOpts(optlevel, 
+                    codemodel, 
+                    no_frame_ptr_elim::Bool, 
+                    enable_fast_isel::Bool, 
+                    memory_manager) = begin
+        @assert optlevel >= 0
+        return new(optlevel, codemodel,
+                   no_frame_ptr_elim, enable_fast_isel, memory_manager)
+    end
+end
+
+immutable MCJITOptsPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end
+
+immutable PassManagerPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end 
+
+immutable PassBuilderPtr <: LLVMPtr
+    ptr::Ptr{Void}
+end 
 
 #---------------------------------#
 
