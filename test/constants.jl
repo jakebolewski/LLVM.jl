@@ -39,5 +39,4 @@ end
 ctx = LLVM.global_ctx()
 ast, asm = test_ast(Uint32, one(Uint32), "global i32 1")
 modh = LLVM.module_from_ast(ctx, ast)
-@show modh
-LLVM.module_to_ast(ctx, modh)
+res = LLVM.module_to_ast(ctx, modh)

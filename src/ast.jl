@@ -8,6 +8,8 @@ abstract LLVMLinkage <: LLVMAstNode
 
 immutable Linkage{T} <: LLVMLinkage end
 
+Base.convert(::Type{LLVMLinkage}, enum::Integer) = enum == 0 ? Linkage{:External}() : error("unknown")
+
 typealias LLVMFloat Union(Float16, Float32, Float64)
 
 # -----------------------------------------------------------------------------
@@ -15,11 +17,11 @@ typealias LLVMFloat Union(Float16, Float32, Float64)
 # -----------------------------------------------------------------------------
 abstract LLVMName <: LLVMAstNode
 
-type Name <: LLVMName 
+immutable Name <: LLVMName 
     val::String
 end
 
-type UnName <: LLVMName 
+immutable UnName <: LLVMName 
     val::Int
 end 
 
@@ -295,6 +297,9 @@ immutable ConstInt <: Constant
     nbits::Int
     val::Integer
 end
+
+Base.(:(==))(c1::ConstInt, c2::ConstInt) = 
+    c1.nbits == c2.nbits && ((v1, v2) = promote(c1.val, c2.val); v1 == v2)
 
 Base.convert{T<:Integer}(::Type{Constant}, v::T) = ConstInt(sizeof(T)*8, v)
 Base.convert{T<:Integer}(::Type{MaybeConstant}, v::T) = convert(Constant, v)
@@ -843,6 +848,8 @@ type GlobalVar <: LLVMGlobal
     alignment::Int
 end 
 
+Base.convert(::Type{Visibility}, enum::Integer) = enum == 0 ? DefaultVisibility() : error("udfjkldjfl")
+
 GlobalVar(;name=error("global variable name not defined"),
            linkage=Linkage{:External}(),
            visibility=DefaultVisibility(),
@@ -867,6 +874,17 @@ GlobalVar(;name=error("global variable name not defined"),
               alignment)
 end
 
+Base.(:(==))(gv1::GlobalVar, gv2::GlobalVar) = gv1.name == gv2.name &&
+                                               gv1.linkage == gv2.linkage &&
+                                               gv1.visibility == gv2.visibility &&
+                                               gv1.threadlocal == gv2.threadlocal &&
+                                               gv1.addrspace == gv2.addrspace  &&
+                                               gv1.unamedaddr ==  gv2.unamedaddr &&
+                                               gv1.isconst == gv2.isconst &&
+                                               gv1.typ == gv2.typ &&
+                                               gv1.init == gv2.init && 
+                                               gv1.section == gv2.section &&
+                                               gv1.alignment == gv2.alignment
 # http://llvm.org/docs/LangRef.html#aliases 
 type GlobalAlias <: LLVMGlobal
     name::LLVMName

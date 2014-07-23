@@ -675,8 +675,11 @@ get_linkage(gval) =
 set_linkage!(gval, link) = 
     ccall((:LLVMSetLinkage, libllvm), Void, (GlobalValuePtr, Linkage), gval, link)
 
-get_section(gval) =
-    bytestring(ccall((:LLVMGetSection, libllvm), Ptr{Uint8}, (GlobalValuePtr,), gval))
+get_section(gval) = begin
+    ptr = ccall((:LLVMGetSection, libllvm), Ptr{Uint8}, (GlobalValuePtr,), gval)
+    res = bytestring(ptr)
+    return isempty(res) ? nothing : res
+end
 
 set_section!(gval, section) =
     ccall((:LLVMSetSection, libllvm), Void, (GlobalValuePtr, Ptr{Uint8}), gval, section)
@@ -694,7 +697,8 @@ set_alignment!(gval, bytes) =
     ccall((:LLVMSetAlignment, libllvm), Void, (GlobalValuePtr, Uint32), gval, bytes)
 
 has_unnamed_addr(gval) =
-    bool(ccall((:LLVM_General_HasUnnamedAddr, libllvm), LLVMBool, (GlobalValuePtr,), gval))
+    bool(ccall((:LLVM_General_HasUnnamedAddr, libllvmgeneral), LLVMBool, 
+               (GlobalValuePtr,), gval))
 
 # todo this is exposed by the C API in LLVM 3.5
 set_unnamed_addr!(val, hasunamed::Bool) =
@@ -713,6 +717,9 @@ is_global_constant(gval) =
 
 set_global_constant!(val, isconst::Bool) =
     ccall((:LLVMSetGlobalConstant, libllvm), Void, (GlobalValuePtr, LLVMBool), val, isconst)
+
+get_initializer(val) =
+    ccall((:LLVMGetInitializer, libllvm), ConstPtr , (GlobalValuePtr,), val)
 
 set_initializer!(val, constval) = 
     ccall((:LLVMSetInitializer, libllvm), Void, (GlobalValuePtr, ValuePtr), val, constval)

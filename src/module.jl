@@ -13,6 +13,21 @@ decode_llvm(ctx::Context, th::TypePtr) = begin
     end 
 end
 
+decode_llvm(ctx::Context, cptr::ConstPtr) = begin
+    ptr_typ = FFI.llvm_typeof(cptr)
+    @show ty = decode_llvm(ctx, ptr_typ)
+    @show subclass_id = FFI.get_value_subclass_id(cptr)
+    @show nops = FFI.get_num_operands(cptr)
+
+    if subclass_id == 11 # constant int 
+        words = FFI.get_constant_int_words(cptr)
+        n = foldr((a, b) -> (a << 64) | b, 0, words)
+        return Ast.ConstInt(ty.nbits, words[1])
+    end
+end
+
+decode_llvm(ctx::Context, ptr::Ptr{Uint8}) = bytestring(ptr)
+
 encode_llvm(ctx::Context, s::String) = begin
     N = length(s)
     ptr = convert(Ptr{Uint8}, Base.c_malloc(sizeof(Uint8) * N + 1))
@@ -20,7 +35,6 @@ encode_llvm(ctx::Context, s::String) = begin
     unsafe_store!(ptr, zero(Uint8), N+1)
     return ptr
 end
-decode_llvm(ptr::Ptr{Uint8}) = bytestring(ptr)
 
 encode_llvm(ctx::Context, typ::Ast.IntType) = 
     FFI.int_type_in_ctx(ctx.handle, uint32(typ.nbits))
@@ -55,10 +69,12 @@ DecodeState() = DecodeState(Dict{GlobalValuePtr,Int}(),
 
 get_global_name(ds::DecodeState, val::GlobalValuePtr) = begin
     name = FFI.get_value_name(val)
-    !isempty(name) && return Ast.Ast(name)
+    if !isempty(name)
+        return Ast.Ast(name)
+    end
     n = length(ds.global_var_num)
     ds.global_var_num[val] = n
-    return Ast.UnName(n) 
+    return Ast.UnName(n-1)
 end
 
 get_local_name(ds::DecodeState, val::ValuePtr) = begin
@@ -77,6 +93,17 @@ save_named_type(ds::DecodeState, typ::TypePtr) =
 
 take_type_to_define(ds::DecodeState) =
     (pop!(ds.types_to_define); return ds)
+
+list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
+    res = T[first]
+    while true
+        nxt = next(first)::T
+        isnull(nxt) && break
+        push!(res, nxt)
+        first = nxt
+    end
+    return res
+end
 
 module_from_ast(ctx::Context, mod::Ast.Module) = begin
     mod_ptr = FFI.create_module_with_name_in_ctx(mod.name, ctx.handle)
@@ -122,13 +149,37 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
 end
 
 module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
-    ds = DecodeState() 
-    # lift c++ mdoule to Ast.Module 
-    name = FFI.get_module_id(mod_ptr)
-    @show name
-    #datalayout = FFI.data_layout(mod_ptr)
-    fg = FFI.get_first_global(mod_ptr) 
-    ty = @show FFI.llvm_typeof(fg)
-    @show decode_llvm(ctx, ty)
-    n = get_global_name(ds, fg)
+    ds = DecodeState()
+    # lift c++ module to Ast.Module 
+    @assert ctx.handle == FFI.get_module_ctx(mod_ptr)
+    moduleid = FFI.get_module_id(mod_ptr)
+    
+    datalayout = FFI.get_datalayout(mod_ptr)
+    isempty(datalayout) && (datalayout = nothing)
+
+    triple = FFI.get_target_triple(mod_ptr)
+    isempty(triple) && (triple = nothing)
+ 
+    local defs = Ast.Definition[] 
+    for g in list(GlobalValuePtr,
+                  FFI.get_first_global(mod_ptr), 
+                  FFI.get_next_global)
+        name  = get_global_name(ds, g)
+        ptrty = decode_llvm(ctx, FFI.llvm_typeof(g))
+        init  = FFI.get_initializer(g)
+        var = Ast.GlobalVar(get_global_name(ds, g), 
+                            FFI.get_linkage(g),
+                            FFI.get_visibility(g),
+                            FFI.is_thread_local(g),
+                            ptrty.addrspace,
+                            FFI.has_unnamed_addr(g),
+                            FFI.is_global_constant(g),
+                            ptrty.typ,
+                            !isnull(init) ? decode_llvm(ctx, init) : nothing, 
+                            FFI.get_section(g),
+                            FFI.get_alignment(g))
+        push!(defs, Ast.GlobalDefinition(var))
+    end
+
+    return Ast.Module(moduleid, datalayout, triple, defs)
 end

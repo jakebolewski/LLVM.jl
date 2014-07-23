@@ -1,6 +1,7 @@
 module Types
 
-export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, isnull
+export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, 
+       ConstPtr, UserPtr, isnull
 
 typealias LLVMBool Cint
 typealias CodeModel Cint
@@ -15,7 +16,7 @@ Base.(:(==))(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr === p2.ptr
     
 Base.show(io::IO, ptr::LLVMPtr) = begin
     addr = "0x$(hex(unsigned(convert(Ptr{Void}, ptr)), WORD_SIZE>>2))"
-    print(io, "$(typeof(ptr))(@$addr)")
+    print(io, "LLVM.$(typeof(ptr))(@$addr)")
 end
 
 immutable SMDiagnosticPtr <: LLVMPtr
