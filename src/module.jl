@@ -95,6 +95,7 @@ take_type_to_define(ds::DecodeState) =
     (pop!(ds.types_to_define); return ds)
 
 list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
+    isnull(first) && return T[]
     res = T[first]
     while true
         nxt = next(first)::T
@@ -103,6 +104,16 @@ list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
         first = nxt
     end
     return res
+end
+
+get_target_triple(ptr::ModulePtr) = begin
+    s = FFI.get_target_triple(ptr)
+    return isempty(s) ? nothing : s
+end
+
+get_datalayout(ptr::ModulePtr) = begin
+    s = FFI.get_datalayout(ptr)
+    return isempty(s) ? nothing : parse_datalayout(s)
 end
 
 module_from_ast(ctx::Context, mod::Ast.Module) = begin
@@ -154,12 +165,9 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
     @assert ctx.handle == FFI.get_module_ctx(mod_ptr)
     moduleid = FFI.get_module_id(mod_ptr)
     
-    datalayout = FFI.get_datalayout(mod_ptr)
-    isempty(datalayout) && (datalayout = nothing)
+    datalayout = get_datalayout(mod_ptr)
+    triple = get_target_triple(mod_ptr)
 
-    triple = FFI.get_target_triple(mod_ptr)
-    isempty(triple) && (triple = nothing)
- 
     local defs = Ast.Definition[] 
     for g in list(GlobalValuePtr,
                   FFI.get_first_global(mod_ptr), 
@@ -180,6 +188,19 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
                             FFI.get_alignment(g))
         push!(defs, Ast.GlobalDefinition(var))
     end
+    for a in list(GlobalAliasPtr,
+                  FFI.get_first_alias(mod_ptr),
+                  FFI.get_next_alias)
+        error("unimplemented")
+    end
+    for f in list(FunctionPtr,
+                  FFI.get_first_func(mod_ptr),
+                  FFI.get_next_func)
+        error("unimplemented")
+    end
+    # struct definitions
+    # module inline asm
+    # named metadata nodes
 
     return Ast.Module(moduleid, datalayout, triple, defs)
 end

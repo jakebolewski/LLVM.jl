@@ -1,7 +1,7 @@
 module Types
 
 export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, 
-       ConstPtr, UserPtr, isnull
+       ConstPtr, UserPtr, GlobalAliasPtr, FunctionPtr, isnull
 
 typealias LLVMBool Cint
 typealias CodeModel Cint

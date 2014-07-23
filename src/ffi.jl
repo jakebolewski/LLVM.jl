@@ -1077,14 +1077,15 @@ get_next_global(gv) =
 get_first_alias(mod) =
     ccall((:LLVM_General_GetFirstAlias, libllvmgeneral), GlobalAliasPtr, (ModulePtr,), mod)
 
-get_next_alias(mod) =
-    ccall((:LLVM_General_GetNextAlias, libllvmgeneral), GlobalAliasPtr, (ModulePtr,), mod)
+get_next_alias(a) =
+    ccall((:LLVM_General_GetNextAlias, libllvmgeneral), GlobalAliasPtr,
+          (GlobalAliasPtr,), a)
 
 get_first_func(mod) =
     ccall((:LLVMGetFirstFunction, libllvm), FunctionPtr, (ModulePtr,), mod)
 
-get_next_func(mod) =
-    ccall((:LLVMGetNextFunction, libllvm), FunctionPtr, (ModulePtr,), mod)
+get_next_func(func) =
+    ccall((:LLVMGetNextFunction, libllvm), FunctionPtr, (FunctionPtr,), func)
 
 get_first_named_md(mod) =
     ccall((:LLVM_General_GetFirstNamedMetadata, libllvmgeneral), NamedMetadataPtr, 

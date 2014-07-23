@@ -18,8 +18,8 @@ end
 
 facts("test constants") do
     context("integer") do
-        ast, asm = test_ast(Uint32, 
-                            one(Uint32), 
+        ast, asm = test_ast(Uint32,
+                            one(Uint32),
                             "global i32 1")
     end
 
@@ -31,7 +31,7 @@ facts("test constants") do
 
     context("big wide integer") do
         ast, asm = test_ast(Ast.IntType(65),
-                            Ast.ConstInt(65,20000000000000000000),
+                            Ast.ConstInt(65, 20000000000000000000),
                             "global i66 20000000000000000000")
     end
 end 
