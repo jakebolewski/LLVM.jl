@@ -12,6 +12,11 @@ isnull(h::LLVMPtr) = is(h.ptr, zero(Ptr{Void}))
 
 Base.convert(::Type{Ptr{Void}}, ptr::LLVMPtr) = ptr.ptr
 Base.(:(==))(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr === p2.ptr
+    
+Base.show(io::IO, ptr::LLVMPtr) = begin
+    addr = "0x$(hex(unsigned(convert(Ptr{Void}, ptr)), WORD_SIZE>>2))"
+    print(io, "$(typeof(ptr))(@$addr)")
+end
 
 immutable SMDiagnosticPtr <: LLVMPtr
     ptr::Ptr{Void}
@@ -78,8 +83,11 @@ immutable JITCompilerOpts
                     enable_fast_isel::Bool, 
                     memory_manager) = begin
         @assert optlevel >= 0
-        return new(optlevel, codemodel,
-                   no_frame_ptr_elim, enable_fast_isel, memory_manager)
+        return new(optlevel, 
+                   codemodel,
+                   no_frame_ptr_elim, 
+                   enable_fast_isel,
+                   memory_manager)
     end
 end
 
