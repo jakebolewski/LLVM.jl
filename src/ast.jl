@@ -4,11 +4,21 @@ import DataStructures
 
 abstract LLVMAstNode 
 
+Base.(:(==))(node1::LLVMAstNode, node2::LLVMAstNode) = begin
+    typeof(node1) === typeof(node2) || return false
+    for field in names(node1)
+        getfield(node1, field) == getfield(node2, field) || return false
+    end
+    return true
+end 
+
 abstract LLVMLinkage <: LLVMAstNode
 
 immutable Linkage{T} <: LLVMLinkage end
 
-Base.convert(::Type{LLVMLinkage}, enum::Integer) = enum == 0 ? Linkage{:External}() : error("unknown")
+#TODO: get rid of this
+Base.convert(::Type{LLVMLinkage}, enum::Integer) = 
+    enum == 0 ? Linkage{:External}() : error("unknown")
 
 typealias LLVMFloat Union(Float16, Float32, Float64)
 
@@ -225,7 +235,7 @@ abstract MetadataType <: LLVMType
 # Inline Assembly 
 # http://llvm.org/docs/LangRef.html#inline-assembler-expressions
 # ----------------------------------------------------------------------------- 
-abstract Dialect 
+abstract Dialect <: LLVMAstNode
 
 # dialect of assembly used in an inline assembly string
 immutable ATTDialect <: Dialect end
@@ -423,18 +433,18 @@ type ConstInsertElement <: Constant
     idx::Constant
 end
 
-type ConstShuffleVector
+type ConstShuffleVector <: Constant
     op1::Constant
     op2::Constant
     mask::Constant
 end
 
-type ConstExtractValue
+type ConstExtractValue <: Constant
     aggregate::Constant 
     idxs::Vector{Int}
 end
 
-type ConstInsertValue
+type ConstInsertValue <: Constant
     aggregate::Constant
     elem::Operand
     idxs::Vector{Int}
@@ -848,7 +858,9 @@ type GlobalVar <: LLVMGlobal
     alignment::Int
 end 
 
-Base.convert(::Type{Visibility}, enum::Integer) = enum == 0 ? DefaultVisibility() : error("udfjkldjfl")
+#TODO: get rid of this
+Base.convert(::Type{Visibility}, enum::Integer) = 
+    enum == 0 ? DefaultVisibility() : error("udfjkldjfl")
 
 GlobalVar(;name=error("global variable name not defined"),
            linkage=Linkage{:External}(),
@@ -874,17 +886,6 @@ GlobalVar(;name=error("global variable name not defined"),
               alignment)
 end
 
-Base.(:(==))(gv1::GlobalVar, gv2::GlobalVar) = gv1.name == gv2.name &&
-                                               gv1.linkage == gv2.linkage &&
-                                               gv1.visibility == gv2.visibility &&
-                                               gv1.threadlocal == gv2.threadlocal &&
-                                               gv1.addrspace == gv2.addrspace  &&
-                                               gv1.unamedaddr ==  gv2.unamedaddr &&
-                                               gv1.isconst == gv2.isconst &&
-                                               gv1.typ == gv2.typ &&
-                                               gv1.init == gv2.init && 
-                                               gv1.section == gv2.section &&
-                                               gv1.alignment == gv2.alignment
 # http://llvm.org/docs/LangRef.html#aliases 
 type GlobalAlias <: LLVMGlobal
     name::LLVMName
@@ -915,7 +916,7 @@ end
 # DataLayout
 # http://llvm.org/docs/LangRef.html#data-layout>
 # -----------------------------------------------------------------------------
-abstract Endianness
+abstract Endianness <: LLVMAstNode
 
 immutable LittleEndian <: Endianness
 end
@@ -924,13 +925,13 @@ immutable BigEndian <: Endianness
 end
 
 # describes how a given type must be aligned
-immutable AlignmentInfo
+immutable AlignmentInfo <: LLVMAstNode
     abi::Int
     perferred::Union(Nothing, Int)
 end
 
 # typeo of type for which 'AlignmentInfo' may be specified
-abstract AlignType
+abstract AlignType <: LLVMAstNode
 
 immutable IntegerAlign <: AlignType end
 immutable VectorAlign <: AlignType end
@@ -938,7 +939,7 @@ immutable FloatAlign <: AlignType end
 immutable AggregateAlign <: AlignType end
 
 # style of name mangling
-abstract Mangling
+abstract Mangling <: LLVMAstNode
 
 immutable ELFMangling <: Mangling end
 immutable MIPSMangling <: Mangling end
@@ -952,7 +953,7 @@ typealias TypeLayoutMap Associative{(AlignType, Int), AlignmentInfo}
 typealias TypeLayoutDict DataStructures.OrderedDict{(AlignType, Int), AlignmentInfo}
 
 # description of various data layout properties which may be used during optimization
-type DataLayout
+type DataLayout <: LLVMAstNode
     endianness::Union(Nothing, Endianness)
     mangling::Union(Nothing, Mangling)
     stackalignment::Union(Nothing, Int)
@@ -977,7 +978,7 @@ DataLayout(;endianness=nothing,
 # Module
 # -----------------------------------------------------------------------------
 # Anything that can be at the top level of a 'Module'
-abstract Definition
+abstract Definition <: LLVMAstNode
 
 type GlobalDefinition <: Definition
     val::LLVMGlobal
@@ -1002,7 +1003,7 @@ type ModuleInlineAsm <: Definition
     source::String
 end
 
-type Module
+type Module <: LLVMAstNode
     name::String
     layout::Union(Nothing, DataLayout)
     target::Union(Nothing, String)
