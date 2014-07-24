@@ -15,10 +15,10 @@ end
 
 decode_llvm(ctx::Context, cptr::ConstPtr) = begin
     ptr_typ = FFI.llvm_typeof(cptr)
-    @show ty = decode_llvm(ctx, ptr_typ)
-    @show subclass_id = FFI.get_value_subclass_id(cptr)
-    @show nops = FFI.get_num_operands(cptr)
-
+    ty = decode_llvm(ctx, ptr_typ)
+    subclass_id = FFI.get_value_subclass_id(cptr)
+    nops = FFI.get_num_operands(cptr)
+    
     if subclass_id == 11 # constant int 
         words = FFI.get_constant_int_words(cptr)
         n = foldr((a, b) -> (a << 64) | b, 0, words)
@@ -74,11 +74,14 @@ get_global_name(ds::DecodeState, val::GlobalValuePtr) = begin
     end
     n = length(ds.global_var_num)
     ds.global_var_num[val] = n
-    return Ast.UnName(n-1)
+    return Ast.UnName(n)
 end
 
 get_local_name(ds::DecodeState, val::ValuePtr) = begin
-    !isempty(name) && return Ast.Ast(name)
+    name = FFI.get_value_name(val)
+    if !isempty(name)
+        return Ast.Ast(name)
+    end
     n = length(ds.local_var_num)
     ds.local_var_num[val] = n
     ds.local_name_counter = n+1
@@ -96,25 +99,73 @@ take_type_to_define(ds::DecodeState) =
 
 list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
     isnull(first) && return T[]
-    res = T[first]
+    lst = T[first]
     while true
         nxt = next(first)::T
         isnull(nxt) && break
-        push!(res, nxt)
+        push!(lst, nxt)
         first = nxt
     end
+    return lst 
+end
+
+decode_llvm(buf::MemoryBufferPtr) = begin
+    start = FFI.get_buffer_start(buf)
+    size  = FFI.get_buffer_size(buf)
+    res = Array(Uint8, size)
+    unsafe_copy!(convert(Ptr{Uint8}, res), start, size)
     return res
 end
+decode_llvm(ctx::Context, buf::MemoryBufferPtr) = decode_llvm(buf)
 
-get_target_triple(ptr::ModulePtr) = begin
-    s = FFI.get_target_triple(ptr)
-    return isempty(s) ? nothing : s
+with_sm_diagnostic(f::Function) = begin
+    smd = FFI.create_sm_diagnostic()
+    try
+        f(smd)
+    finally 
+        FFI.dispose_sm_diagnostic(smd)
+    end 
 end
 
-get_datalayout(ptr::ModulePtr) = begin
-    s = FFI.get_datalayout(ptr)
-    return isempty(s) ? nothing : parse_datalayout(s)
+module_from_assembly(ctx::Context, asm::String) = begin
+    # llvm takes ownership of the buffer
+    buf = FFI.create_mem_buffer_with_mem_range("<string>", asm)
+    smd = FFI.create_sm_diagnostic()
+    mod = FFI.parse_llvm_assembly(ctx.handle, buf, smd)
+    if isnull(mod)
+        diag = Diagnostic(smd)
+        FFI.dispose_sm_diagnostic(smd)
+        throw(diag)
+    end
+    FFI.dispose_sm_diagnostic(smd)
+    return mod
 end
+
+module_to_assembly(ctx::Context, mod::ModulePtr) = begin
+    FFI.with_buff_raw_ostream() do ostream
+        FFI.write_llvm_assembly(ostream, mod)
+    end
+end
+
+# write LLVM Assembly from a 'ModulePtr' to a file
+write_assembly_file(path::String, mod::ModulePtr) = begin
+    FFI.with_file_raw_ostream(path, false, false) do ostream
+        FFI.write_llvm_assembly(ostream, mod)
+    end
+end 
+
+# write LLVM Bitccode from a 'ModulePtr' to a file
+write_bitcode_file(path::String, mod::ModulePtr) = begin
+    FFI.with_file_raw_ostream(path, false, false) do ostream 
+        FFI.write_bitcode(ostream, mod)
+    end
+end 
+
+get_target_triple(ptr::ModulePtr) =
+    (s = FFI.get_target_triple(ptr); isempty(s) ? nothing : s)
+
+get_datalayout(ptr::ModulePtr) =
+    (s = FFI.get_datalayout(ptr); isempty(s) ? nothing : parse_datalayout(s))
 
 module_from_ast(ctx::Context, mod::Ast.Module) = begin
     mod_ptr = FFI.create_module_with_name_in_ctx(mod.name, ctx.handle)
@@ -163,10 +214,10 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
     ds = DecodeState()
     # lift c++ module to Ast.Module 
     @assert ctx.handle == FFI.get_module_ctx(mod_ptr)
-    moduleid = FFI.get_module_id(mod_ptr)
     
+    moduleid   = FFI.get_module_id(mod_ptr)
     datalayout = get_datalayout(mod_ptr)
-    triple = get_target_triple(mod_ptr)
+    triple     = get_target_triple(mod_ptr)
 
     local defs = Ast.Definition[] 
     for g in list(GlobalValuePtr,
@@ -175,7 +226,7 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
         name  = get_global_name(ds, g)
         ptrty = decode_llvm(ctx, FFI.llvm_typeof(g))
         init  = FFI.get_initializer(g)
-        var = Ast.GlobalVar(get_global_name(ds, g), 
+        var = Ast.GlobalVar(name,
                             FFI.get_linkage(g),
                             FFI.get_visibility(g),
                             FFI.is_thread_local(g),
@@ -191,16 +242,24 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
     for a in list(GlobalAliasPtr,
                   FFI.get_first_alias(mod_ptr),
                   FFI.get_next_alias)
-        error("unimplemented")
+        name = get_global_name(ds, a)
+        var = Ast.GlobalAlias(name,
+                              FFI.get_linkage(a),
+                              FFI.get_visibility(a),
+                              FFI.llvm_typeof(a),
+                              decode_llvm(ctx, FFI.get_aliasee(a)))
+        push!(defs, Ast.GlobalDefinition(var))
     end
     for f in list(FunctionPtr,
                   FFI.get_first_func(mod_ptr),
                   FFI.get_next_func)
         error("unimplemented")
     end
+
     # struct definitions
     # module inline asm
     # named metadata nodes
+    # metadata definitions
 
     return Ast.Module(moduleid, datalayout, triple, defs)
 end

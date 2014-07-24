@@ -10,9 +10,12 @@ test_ast(typ, val, str) = begin
             Ast.GlobalDefinition(
                 Ast.GlobalVar(name=Ast.UnName(2), typ=Uint32, init=nothing)),
         ])
-    astr ="; ModuleID = '<string>'\n\n@0 = $str\n\
-           \@1 = external global i32\n\
-           \@2 = external global i32\n"
+    astr ="""
+; ModuleID = '<string>'
+
+@0 = $str
+@1 = external global i32
+@2 = external global i32"""
     return (ast, astr)
 end
 
@@ -40,3 +43,4 @@ ctx = LLVM.global_ctx()
 ast, asm = test_ast(Uint32, one(Uint32), "global i32 1")
 modh = LLVM.module_from_ast(ctx, ast)
 res = LLVM.module_to_ast(ctx, modh)
+#LLVM.write_assembly("/home/jake/test.llvm", modh)

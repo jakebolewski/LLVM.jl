@@ -41,10 +41,10 @@ verify_module(mod, on_failure_cfunc, str) =
 # Use LLVM's parser to parse a string of llvm assembly in a memory buffer to get a module
 parse_llvm_assembly(ctx, buff, diag) = 
     ccall((:LLVM_General_ParseLLVMAssembly, libllvmgeneral), ModulePtr,
-          (ContextPtr, Ptr{Uint8}, SMDiagnosticPtr), ctx, buff, diag)
+          (ContextPtr, MemoryBufferPtr, SMDiagnosticPtr), ctx, buff, diag)
 
 # Use LLVM's serializer to generate a string of llvm assembly from a module 
-write_llvm_assembly!(io, mod) = 
+write_llvm_assembly(io, mod) = 
     ccall((:LLVM_General_WriteLLVMAssembly, libllvmgeneral), Void,
           (ModulePtr, RawOStreamPtr), mod, io)
 
@@ -926,14 +926,14 @@ get_metadata(inst, mdkinds, mdnodes, nkinds) =
 #------------------------------------------------------------------------------
 
 create_mem_buffer_with_contents_of_file(path) = begin
-    @assert isfile(path)
-    errmsg  = Ptr{Uint8}[0]
-    bufptr  = [MemoryBufferPtr(C_NULL)]
-    success = bool(ccall((:LLVMCreateMemoryBufferWithContentsOfFile, libllvm), LLVMBool,
-                         (Ptr{Uint8}, Ptr{MemoryBufferPtr}, Ptr{Ptr{Uint}}),
-                         path, bufptr, bufptr, errmsg))
-    if !success
-        if errmsg[1] != C_NULL
+    !isfile(path) && throw(ArgumentError("file $path does not exist"))
+    errmsg = Ptr{Uint8}[0]
+    bufptr = [MemoryBufferPtr(C_NULL)]
+    status = ccall((:LLVMCreateMemoryBufferWithContentsOfFile, libllvm), LLVMBool,
+                   (Ptr{Uint8}, Ptr{MemoryBufferPtr}, Ptr{Ptr{Uint8}}),
+                   path, bufptr, errmsg)
+    if status != 0
+        if errmsg[1] == C_NULL
             error("unknown error when creating mem buffer with contents of file \"$path\"")
         else
             error(bytestring(errmsg[1]))
@@ -943,10 +943,11 @@ create_mem_buffer_with_contents_of_file(path) = begin
     return bufptr[1]
 end
 
-create_mem_buffer_with_mem_range(input, name, reqnull=false) = begin
+create_mem_buffer_with_mem_range(name, input) = begin
+    # we always null terminate input
     len = length(input)
     ccall((:LLVMCreateMemoryBufferWithMemoryRange, libllvm), MemoryBufferPtr,
-          (Ptr{Uint8}, Csize_t, Ptr{Uint8}, LLVMBool), input, len, name, reqnull)
+          (Ptr{Uint8}, Csize_t, Ptr{Uint8}, LLVMBool), input, len, name, true)
 end
 
 get_buffer_start(buf) =
@@ -1220,19 +1221,38 @@ pass_manager_builder_set_lib_info(bld, tinfo) =
 # Raw OStream 
 #------------------------------------------------------------------------------
 
+function ostreamcb(ptr::Ptr{Void}, data::Ptr{Void})
+    (callback, _) = unsafe_pointer_to_objref(data)::(Function,IOBuffer)
+    callback(RawOStreamPtr(ptr))
+    return nothing
+end
+const c_ostream_cb = cfunction(ostreamcb, Void, (Ptr{Void}, Ptr{Void}))
+
 with_file_raw_ostream(f::Function, filename, excl::Bool, binary::Bool) = begin
-    fptr = cfunction(f, Void, (RawOStreamPtr,))
+    payload = (f, IOBuffer())
     errptr = Ptr{Uint8}[0]
-    bool(ccall((:LLVM_General_WithFileRawOStream, libllvmgeneral), LLVMBool,
-                (Ptr{Uint8}, LLVMBool, LLVMBool, Ptr{Ptr{Uint8}}, Ptr{Void}),
-                filename, excl, binary, errptr, fptr))
+    success = bool(ccall((:LLVM_General_WithFileRawOStream, libllvmgeneral), LLVMBool,
+                         (Ptr{Uint8}, LLVMBool, LLVMBool, Ptr{Ptr{Uint8}}, Ptr{Void}, Any),
+                         filename, excl, binary, errptr, c_ostream_cb, payload))
+    if !success
+        errptr[1] == C_NULL ? error("unknown error in `with_file_raw_ostream`") :
+                              error(bytestring(errptr[1]))
+    end
+    return 
 end 
 
-with_buff_raw_ostream(outputcb::Function,  ostreamcb::Function) = begin
-    outfp = cfunction(outputcb, Void, (Ptr{Uint8}, Ptr{Uint8}))
-    osfp  = cfunction(ostreamcb, Void, (OStreamPtr,))
-    ccall((:LLVM_General_WithFileRawOStream, libllvmgeneral), Void,
-          (Ptr{Void}, Ptr{Void}), outfp, osfp)
+function savebuffercb(ptr::Ptr{Void}, len::Csize_t, data::Ptr{Void})
+    (callback, buff) = unsafe_pointer_to_objref(data)::(Function,IOBuffer)
+    Base.write(buff, ptr, len)
+    return nothing
+end
+const c_savebuffer_cb = cfunction(savebuffercb, Void, (Ptr{Void}, Csize_t, Ptr{Void}))
+
+with_buff_raw_ostream(f::Function) = begin
+    payload = (f, IOBuffer())
+    ccall((:LLVM_General_WithBufferRawOStream, libllvmgeneral), Void,
+          (Ptr{Void}, Ptr{Void}, Any), c_savebuffer_cb, c_ostream_cb, payload)
+    return bytestring(payload[2])
 end 
 
 #------------------------------------------------------------------------------
@@ -1286,7 +1306,7 @@ init_native_target() =
     bool(ccall((:LLVM_General_InitializeNativeTarget, libllvmgeneral), LLVMBool, ()))
 
 lookup_target(arch, ctriple, tripleout, cerr) = begin
-    tripleout, cerr= Ptr{Uint8}[0], Ptr{Uint8}[0]
+    tripleout, cerr = Ptr{Uint8}[0], Ptr{Uint8}[0]
     target = ccall((:LLVM_General_LookupTarget, libllvmgeneral), TargetPtr,
                    (Ptr{Uint8}, Ptr{Uint8}, Ptr{Ptr{Uint8}}, Ptr{Ptr{Uint8}}),
                    arch, ctriple, tripleout, cerr)
