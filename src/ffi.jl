@@ -1230,13 +1230,18 @@ const c_ostream_cb = cfunction(ostreamcb, Void, (Ptr{Void}, Ptr{Void}))
 
 with_file_raw_ostream(f::Function, filename, excl::Bool, binary::Bool) = begin
     payload = (f, IOBuffer())
-    errptr = Ptr{Uint8}[0]
-    success = bool(ccall((:LLVM_General_WithFileRawOStream, libllvmgeneral), LLVMBool,
-                         (Ptr{Uint8}, LLVMBool, LLVMBool, Ptr{Ptr{Uint8}}, Ptr{Void}, Any),
-                         filename, excl, binary, errptr, c_ostream_cb, payload))
-    if !success
-        errptr[1] == C_NULL ? error("unknown error in `with_file_raw_ostream`") :
-                              error(bytestring(errptr[1]))
+    errptr  = Ptr{Uint8}[0]
+    status  = zero(LLVMBool) 
+    try
+        status = ccall((:LLVM_General_WithFileRawOStream, libllvmgeneral), LLVMBool,
+                       (Ptr{Uint8}, LLVMBool, LLVMBool, Ptr{Ptr{Uint8}}, Ptr{Void}, Any),
+                       filename, excl, binary, errptr, c_ostream_cb, payload)
+        if status != zero(LLVMBool)
+            errptr[1] == C_NULL ? error("unknown error in `with_file_raw_ostream`") :
+                                  error(bytestring(errptr[1]))
+        end
+    catch ex
+        rethrow(ex)
     end
     return 
 end 
@@ -1252,7 +1257,7 @@ with_buff_raw_ostream(f::Function) = begin
     payload = (f, IOBuffer())
     ccall((:LLVM_General_WithBufferRawOStream, libllvmgeneral), Void,
           (Ptr{Void}, Ptr{Void}, Any), c_savebuffer_cb, c_ostream_cb, payload)
-    return bytestring(payload[2])
+    return payload[2]
 end 
 
 #------------------------------------------------------------------------------

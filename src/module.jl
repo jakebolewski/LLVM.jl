@@ -142,9 +142,10 @@ module_from_assembly(ctx::Context, asm::String) = begin
 end
 
 module_to_assembly(ctx::Context, mod::ModulePtr) = begin
-    FFI.with_buff_raw_ostream() do ostream
+    buf = FFI.with_buff_raw_ostream() do ostream
         FFI.write_llvm_assembly(ostream, mod)
     end
+    return bytestring(buf)
 end
 
 # write LLVM Assembly from a 'ModulePtr' to a file
