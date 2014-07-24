@@ -342,8 +342,8 @@ get_constant_data_seq_elem_as_const(val, idx) = begin
 end 
 
 const_int_arbitrary_precision(typ, nwords, words) = 
-    ccall((:LLVMConstIntOfArbitraryPrecision, libllvm), ValuePtr,
-          (TypePtr, Uint32, Ptr{Int64}), typ, nwords, words)
+    ccall((:LLVMConstIntOfArbitraryPrecision, libllvm), ConstPtr,
+          (TypePtr, Uint32, Ptr{Uint64}), typ, nwords, words)
 
 const_float_arbitrary_precision(ctx, nbits, words, semantics) =
     ccall((:LLVM_General_ConstFloatOfArbitraryPrecision, libllvmgeneral), ConstPtr,

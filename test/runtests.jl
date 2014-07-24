@@ -6,3 +6,5 @@ include("datalayout.jl")
 
 # LLVM tests
 include("context.jl")
+include("constants.jl")
+

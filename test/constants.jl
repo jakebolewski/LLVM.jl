@@ -57,9 +57,17 @@ facts("test constants") do
     end
 
     context("big wide integer") do
-        ast, asm = test_ast(Ast.IntType(65),
-                            Ast.ConstInt(65, 20000000000000000000),
+        ast, asm = test_ast(Ast.IntType(66),
+                            Ast.ConstInt(66, 20000000000000000000),
                             "global i66 20000000000000000000")
+        check_result(ast, asm)
+    end
+
+    context("negative wide integer") do
+        ast, asm = test_ast(Ast.IntType(65),
+                            Ast.ConstInt(65, 36893488147419103231),
+                            "global i65 -1")
+        check_result(ast, asm)
     end
 end 
 
@@ -68,5 +76,4 @@ ctx = LLVM.global_ctx()
 ast, asm = test_ast(Uint32, one(Uint32), "global i32 1")
 modh = LLVM.module_from_ast(ctx, ast)
 res = LLVM.module_to_ast(ctx, modh)
-#LLVM.write_assembly("/home/jake/test.llvm", modh)
 =#
