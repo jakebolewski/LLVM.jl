@@ -97,18 +97,6 @@ save_named_type(ds::DecodeState, typ::TypePtr) =
 take_type_to_define(ds::DecodeState) =
     (pop!(ds.types_to_define); return ds)
 
-list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
-    isnull(first) && return T[]
-    lst = T[first]
-    while true
-        nxt = next(first)::T
-        isnull(nxt) && break
-        push!(lst, nxt)
-        first = nxt
-    end
-    return lst 
-end
-
 decode_llvm(buf::MemoryBufferPtr) = begin
     start = FFI.get_buffer_start(buf)
     size  = FFI.get_buffer_size(buf)
@@ -148,8 +136,18 @@ module_from_bitcode(ctx::Context, bytes::Union(ByteString, IOBuffer)) = begin
     module_from_bitcode(ctx, buf)
 end
 
-module_from_bitcode(ctx, Context, bytes::Vector{Uint8}) = begin
+module_from_bitcode(ctx::Context, name::String, bytes::Union(ByteString, IOBuffer)) = begin
+    buf = FFI.create_mem_buffer_with_mem_range(name, bytes.data)
+    module_from_bitcode(ctx, buf)
+end 
+
+module_from_bitcode(ctx::Context, bytes::Vector{Uint8}) = begin
     buf = FFI.create_mem_buffer_with_mem_range("<bytes>", bytes)
+    module_from_bitcode(ctx, buf)
+end 
+
+module_from_bitcode(ctx::Context, name::String, bytes::Vector{Uint8}) = begin
+    buf = FFI.create_mem_buffer_with_mem_range(name, bytes)
     module_from_bitcode(ctx, buf)
 end 
 
@@ -168,18 +166,22 @@ end
 module_from_assembly(ctx::Context, buf::MemoryBufferPtr) = begin
     smd = FFI.create_sm_diagnostic()
     mod = FFI.parse_llvm_assembly(ctx.handle, buf, smd)
-    if isnull(mod)
-        diag = Diagnostic(smd)
+    try
+        isnull(mod) && throw(Diagnostic(smd))
+        return mod
+    finally
         FFI.dispose_sm_diagnostic(smd)
-        throw(diag)
     end
-    FFI.dispose_sm_diagnostic(smd)
-    return mod
 end
 
 # llvm takes ownership of the buffer
 module_from_assembly(ctx::Context, asm::String) = begin
     buf = FFI.create_mem_buffer_with_mem_range("<string>", asm)
+    return module_from_assembly(ctx, buf)
+end
+
+module_from_assembly(ctx::Context, name::String, asm::String) = begin
+    buf = FFI.create_mem_buffer_with_mem_range(name, asm)
     return module_from_assembly(ctx, buf)
 end
 
@@ -202,7 +204,7 @@ write_assembly_file(path::String, mod::ModulePtr) = begin
     end
 end 
 
-# write LLVM Bitccode from a 'ModulePtr' to a file
+# write LLVM Bitcode from a 'ModulePtr' to a file
 write_bitcode_file(path::String, mod::ModulePtr) = begin
     FFI.with_file_raw_ostream(path, false, false) do ostream 
         FFI.write_llvm_bitcode(ostream, mod)
@@ -259,18 +261,19 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
 end
 
 module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
-    ds = DecodeState()
     # lift c++ module to Ast.Module 
     @assert ctx.handle == FFI.get_module_ctx(mod_ptr)
+
+    ds = DecodeState()
     
     moduleid   = FFI.get_module_id(mod_ptr)
     datalayout = get_datalayout(mod_ptr)
     triple     = get_target_triple(mod_ptr)
 
     local defs = Ast.Definition[] 
-    for g in list(GlobalValuePtr,
-                  FFI.get_first_global(mod_ptr), 
-                  FFI.get_next_global)
+    for g in FFI.list(GlobalValuePtr,
+                      FFI.get_first_global(mod_ptr), 
+                      FFI.get_next_global)
         name  = get_global_name(ds, g)
         ptrty = decode_llvm(ctx, FFI.llvm_typeof(g))
         init  = FFI.get_initializer(g)
@@ -287,20 +290,26 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
                             FFI.get_alignment(g))
         push!(defs, Ast.GlobalDefinition(var))
     end
-    for a in list(GlobalAliasPtr,
-                  FFI.get_first_alias(mod_ptr),
-                  FFI.get_next_alias)
-        name = get_global_name(ds, a)
-        var = Ast.GlobalAlias(name,
+    for a in FFI.list(GlobalAliasPtr,
+                      FFI.get_first_alias(mod_ptr),
+                      FFI.get_next_alias)
+        aname = get_global_name(ds, a)
+        var = Ast.GlobalAlias(aname,
                               FFI.get_linkage(a),
                               FFI.get_visibility(a),
                               FFI.llvm_typeof(a),
                               decode_llvm(ctx, FFI.get_aliasee(a)))
         push!(defs, Ast.GlobalDefinition(var))
     end
-    for f in list(FunctionPtr,
-                  FFI.get_first_func(mod_ptr),
-                  FFI.get_next_func)
+    for f in FFI.list(FunctionPtr,
+                      FFI.get_first_func(mod_ptr),
+                      FFI.get_next_func)
+        fname = get_global_name(ds, f)
+        bblocks = BasicBlockPtr[]
+        for b in FFI.list(BasicBlockPtr,
+                          FFI.get_first_basicblock(f),
+                          FFI.get_next_basicblock)
+        end
         error("unimplemented")
     end
 

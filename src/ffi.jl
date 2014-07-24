@@ -27,6 +27,19 @@ typealias CodeModel        Cint
 typealias CodeGenOptLevel  Cint
 typealias DiagnosticKind   Cint
 
+# deal with LLVM's linked list structures
+list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
+    isnull(first) && return T[]
+    lst = T[first]
+    while true
+        nxt = next(first)::T
+        isnull(nxt) && break
+        push!(lst, nxt)
+        first = nxt
+    end
+    return lst 
+end
+
 #------------------------------------------------------------------------------
 # Analysis 
 #------------------------------------------------------------------------------
