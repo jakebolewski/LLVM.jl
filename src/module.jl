@@ -127,9 +127,45 @@ with_sm_diagnostic(f::Function) = begin
     end 
 end
 
-module_from_assembly(ctx::Context, asm::String) = begin
-    # llvm takes ownership of the buffer
-    buf = FFI.create_mem_buffer_with_mem_range("<string>", asm)
+module_from_bitcode(ctx::Context, buf::MemoryBufferPtr) = begin
+    msg = Ptr{Uint8}[0]
+    mod = FFI.parse_llvm_bitcode(ctx.handle, buf, msg)
+    if isnull(mod)
+        if msg[1] == C_NULL
+            error("unknown error with `module_from_bitcode`")
+        else
+            err = bytestring(msg[1])
+            c_free(msg[1])
+            throw(ErrorException(err))
+        end 
+    end
+    return mod
+end
+
+# llvm takes ownership of the buffer
+module_from_bitcode(ctx::Context, bytes::Union(ByteString, IOBuffer)) = begin
+    buf = FFI.create_mem_buffer_with_mem_range("<bytes>", bytes.data)
+    module_from_bitcode(ctx, buf)
+end
+
+module_from_bitcode(ctx, Context, bytes::Vector{Uint8}) = begin
+    buf = FFI.create_mem_buffer_with_mem_range("<bytes>", bytes)
+    module_from_bitcode(ctx, buf)
+end 
+
+module_from_bitcode_file(ctx::Context, path::String) = begin
+    buf = FFI.create_mem_buffer_with_contents_of_file(path)
+    module_from_bitcode(ctx, buf)
+end 
+
+module_to_bitcode(ctx::Context, mod::ModulePtr) = begin
+    buf = FFI.with_buff_raw_ostream() do ostream
+        FFI.write_llvm_bitcode(ostream, mod)
+    end
+    return buf 
+end
+
+module_from_assembly(ctx::Context, buf::MemoryBufferPtr) = begin
     smd = FFI.create_sm_diagnostic()
     mod = FFI.parse_llvm_assembly(ctx.handle, buf, smd)
     if isnull(mod)
@@ -140,6 +176,17 @@ module_from_assembly(ctx::Context, asm::String) = begin
     FFI.dispose_sm_diagnostic(smd)
     return mod
 end
+
+# llvm takes ownership of the buffer
+module_from_assembly(ctx::Context, asm::String) = begin
+    buf = FFI.create_mem_buffer_with_mem_range("<string>", asm)
+    return module_from_assembly(ctx, buf)
+end
+
+module_from_assembly_file(ctx::Context, path::String) = begin
+    buf = FFI.create_mem_buffer_with_contents_of_file(path)
+    return module_from_assembly(ctx, buf)
+end 
 
 module_to_assembly(ctx::Context, mod::ModulePtr) = begin
     buf = FFI.with_buff_raw_ostream() do ostream
@@ -158,7 +205,7 @@ end
 # write LLVM Bitccode from a 'ModulePtr' to a file
 write_bitcode_file(path::String, mod::ModulePtr) = begin
     FFI.with_file_raw_ostream(path, false, false) do ostream 
-        FFI.write_bitcode(ostream, mod)
+        FFI.write_llvm_bitcode(ostream, mod)
     end
 end 
 

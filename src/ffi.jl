@@ -93,11 +93,11 @@ get_fast_math_flags(val) =
 #------------------------------------------------------------------------------
 # BitCode 
 #------------------------------------------------------------------------------
-parse_bitcode(ctx, membuf, str) =
+parse_llvm_bitcode(ctx, membuf, str) =
     ccall((:LLVM_General_ParseBitcode, libllvmgeneral), ModulePtr,
-          (ContextPtr, MemoryBufferPtr, Ptr{Uint8}), ctx, membuf, str)
+          (ContextPtr, MemoryBufferPtr, Ptr{Ptr{Uint8}}), ctx, membuf, str)
 
-write_bitcode(io, mod) = 
+write_llvm_bitcode(io, mod) = 
     ccall((:LLVM_General_WriteBitcode, libllvmgeneral), Void,
           (ModulePtr, RawOStreamPtr), mod, io)
 
