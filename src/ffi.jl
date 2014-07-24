@@ -1392,7 +1392,7 @@ dispose_target_machine(tmachine) =
 target_machine_emit(tmachine, mod, code_gen_ftype, dest) = begin
     errmsg = Ptr{Uint8}[0]
     res = bool(ccall((:LLVM_General_TargetMachineEmit, libllvmgeneral), LLVMBool,
-                     (TargetMachinePtr, ModulePtr, CodeGenFileType, Ptr{Ptr{Uint8}}, OStreamPtr),
+                     (TargetMachinePtr, ModulePtr, CodeGenFileType, Ptr{Ptr{Uint8}}, RawOStreamPtr),
                      tmachine, mod, code_gen_ftype, errmsg, dest))
     #TODO: errsmg
     return res

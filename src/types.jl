@@ -60,10 +60,6 @@ immutable TargetLoweringPtr <: LLVMPtr
     ptr::Ptr{Void}
 end
 
-immutable OStreamPtr <: LLVMPtr
-    ptr::Ptr{Void}
-end
-
 immutable ExeEnginePtr <: LLVMPtr
     ptr::Ptr{Void}
 end
