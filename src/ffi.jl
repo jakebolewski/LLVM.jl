@@ -335,7 +335,7 @@ const_named_struct(typ, constvals) = begin
           (TypePtr, Ptr{ConstPtr}, Cuint), typ, constvals, n)
 end
 
-get_constant_data_seq_elem_as_const(val, idx) = begin
+get_const_data_seq_elem_as_const(val, idx) = begin
     idx > zero(idx) || throw(BoundsError())
     ccall((:LLVM_General_GetConstantDataSequentialElementAsConstant, libllvmgeneral), ConstPtr,
           (ConstPtr, Uint32), val, idx-1) 
@@ -362,10 +362,10 @@ end
 constant_null(typ) = 
     ccall((:LLVMConstNull, libllvm), ConstPtr, (TypePtr,), typ)
 
-constant_array(typ, cnsts) = begin
+const_array(typ, cnsts) = begin
     n = length(cnsts)
-    ccall((:LLVMConstArray, libllvm), ConstPtr, (TypePtr, Ptr{ConstPtr}, Cuint),
-          (typ, cnsts, n))
+    ccall((:LLVMConstArray, libllvm), ConstPtr, (TypePtr, Ptr{ConstPtr}, Cuint), 
+          typ, cnsts, n)
 end
 
 constant_cast(opcode, cnst, typ) =
@@ -408,6 +408,9 @@ get_constant_indices(cnst) = begin
     end
     return out
 end
+
+const_undef(typ) =
+    ccall((:LLVMGetUndef, libllvm), ConstPtr, (TypePtr,), typ)
 
 block_address(val, bb) = 
     ccall((:LLVMBlockAddress, libllvm), ConstPtr, (ValuePtr, BasicBlockPtr), val, bb)
@@ -735,7 +738,7 @@ get_initializer(val) =
     ccall((:LLVMGetInitializer, libllvm), ConstPtr , (GlobalValuePtr,), val)
 
 set_initializer!(val, constval) = 
-    ccall((:LLVMSetInitializer, libllvm), Void, (GlobalValuePtr, ValuePtr), val, constval)
+    ccall((:LLVMSetInitializer, libllvm), Void, (GlobalValuePtr, ConstPtr), val, constval)
  
 is_thread_local(gval) =
     bool(ccall((:LLVMIsThreadLocal, libllvm), LLVMBool, (GlobalValuePtr,), gval))
@@ -1524,7 +1527,7 @@ vector_type(typ, n) =
 
 # what http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#gabd1666e080f693e1af0b4018005cd927
 array_type(typ, n) =
-    ccall((:LLVM_General_ArrayType, libllvm), TypePtr, (TypePtr, Uint64), typ, n)  
+    ccall((:LLVM_General_ArrayType, libllvmgeneral), TypePtr, (TypePtr, Uint64), typ, n)  
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeStruct.html#gaff2af74740a22f7d18701f0d8c3e5a6f
 struct_type_in_ctx(ctx, typs, packed::Bool) = 
@@ -1572,7 +1575,7 @@ get_vector_size(typ) =
 
 # what http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga02dc08041a12265cb700ee469497df63
 get_array_length(typ) =
-    ccall((:LLVM_General_GetArrayLength, libllvm), Uint64, (TypePtr,), typ)
+    ccall((:LLVM_General_GetArrayLength, libllvmgeneral), Uint64, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeOther.html#ga1c78ca6d7bf279330b9195fa52f23828
 void_type_in_ctx(ctx) =

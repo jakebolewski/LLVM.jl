@@ -71,8 +71,12 @@ decode_llvm(st::DecodeState, tptr::TypePtr) = begin
         else
             error("unimplemented")
         end 
+    elseif k == TypeKind.array
+        len = FFI.get_array_length(tptr)
+        typ = decode_llvm(st, FFI.get_elem_type(tptr))
+        return Ast.ArrayType(typ, len)
     else
-        error("unimplemented")
+        error("unimplemented type kind $k")
     end
 end
 
@@ -99,6 +103,8 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         n = foldr((b, a) -> (a << 64) | b, v0, words)
         return Ast.ConstInt(typ.nbits, n)
 
+    elseif subclass_id == ValueSubclass.undef_value
+        return Ast.ConstUndef(typ)
     elseif subclass_id == ValueSubclass.const_fp
         nbits, fmt = typ.nbits, typ.fmt
         words = zeros(Uint64, div((nbits - 1), 64) + 1)
@@ -121,6 +127,20 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
         end
         return Ast.ConstStruct(name, p, vals) 
+    elseif subclass_id == ValueSubclass.const_data_array
+        @assert isa(typ, Ast.ArrayType)
+        vals = Array(Ast.Constant, typ.len)
+        for i = 1:typ.len
+            vals[i] = decode_llvm(st, FFI.get_const_data_seq_elem_as_const(cptr, i))
+        end
+        return Ast.ConstArray(typ, vals)
+    elseif subclass_id == ValueSubclass.const_array
+        @assert isa(typ, Ast.ArrayType)
+        vals = Array(Ast.Constant, typ.len)
+        for i = 1:typ.len
+            vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
+        end 
+        return Ast.ConstArray(typ, vals)
     else
         error("unimplemented subclassid : $subclass_id")
     end
@@ -172,10 +192,10 @@ EncodeState(ctx::Context) = begin
     return es
 end 
 
-get_named_type(st::EncodeState, name::String) = get_named_type(st, Ast.Name(name))
+get_named_type(st::EncodeState, name::String)   = get_named_type(st, Ast.Name(name))
 get_named_type(st::EncodeState, name::Ast.Name) = get_named_type(st, name)
 
-get_local_type(st::EncodeState, name::String) = get_local_type(st, Ast.Name(name))
+get_local_type(st::EncodeState, name::String)   = get_local_type(st, Ast.Name(name))
 get_local_type(st::EncodeState, name::Ast.Name) = es.locals[name]
 
 encode_llvm(es::EncodeState, s::String) = begin
@@ -240,6 +260,16 @@ encode_llvm(st::EncodeState, struct::Ast.ConstStruct) = begin
         return FFI.const_named_struct(typ, cptrs)
     end 
 end
+
+encode_llvm(st::EncodeState, atyp::Ast.ArrayType) = 
+    FFI.array_type(encode_llvm(st, atyp.typ), atyp.len)
+
+encode_llvm(st::EncodeState, carr::Ast.ConstArray) = 
+    FFI.const_array(encode_llvm(st, carr.typ),
+                    encode_llvm(st, carr.vals))
+
+encode_llvm(st::EncodeState, undef::Ast.ConstUndef) =
+    FFI.const_undef(encode_llvm(st, undef.typ))
 
 encode_llvm(st::EncodeState, addr::Ast.AddrSpace) = addr.val
 

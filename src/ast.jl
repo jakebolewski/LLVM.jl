@@ -184,8 +184,10 @@ immutable IntType <: LLVMType
     nbits::Int
 end
 
-Base.convert(::Type{LLVMType}, ::Type{Uint32}) = IntType(32)
-Base.convert(::Type{LLVMType}, ::Type{Int32})  = IntType(32)
+Base.convert{T<:Integer}(::Type{LLVMType}, ::Type{T}) = IntType(sizeof(T) * 8)
+
+Base.convert(::Type{LLVMType}, ::Type{BigInt}) = 
+    error("cannot convert BigInt to LLVMType")
 
 # http://llvm.org/docs/LangRef.html#pointer-type
 immutable PtrType <: LLVMType
@@ -229,7 +231,7 @@ immutable ArrayType <: LLVMType
 end
 
 # http://llvm.org/docs/LangRef.html#opaque-structure-types
-immutable NamedTypeRef
+immutable NamedTypeRef 
     val::Name
 end 
 

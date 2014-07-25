@@ -88,7 +88,7 @@ facts("test constants") do
     end
     
     context("half") do
-        #test_float_roundtrip(Float16, ctx, 1e5)
+        test_float_roundtrip(Float16, ctx, 1e3)
         ast, asm = test_ast(Float16,
                             Ast.ConstFloat(float16(3.5645)),
                             "global half 0xH4321")
@@ -96,7 +96,7 @@ facts("test constants") do
     end
 
     context("single") do
-        #test_float_roundtrip(Float32, ctx, 1e5)
+        test_float_roundtrip(Float32, ctx, 1e3)
         ast, asm = test_ast(Float32,
                             Ast.ConstFloat(1.0f0),
                             "global float 1.000000e+00")
@@ -104,7 +104,7 @@ facts("test constants") do
     end
     
     context("double") do
-        #test_float_roundtrip(Float64, ctx, 1e5)
+        test_float_roundtrip(Float64, ctx, 1e3)
         ast, asm = test_ast(Float64,
                             Ast.ConstFloat(1.0),
                             "global double 1.000000e+00")
@@ -122,14 +122,39 @@ facts("test constants") do
                             "global { i32, i32 } { i32 1, i32 1 }")
         check_result(ast, asm)
     end 
+
+    context("dataarray") do
+        ast, asm = test_ast(Ast.ArrayType(Uint32, 3),
+                            Ast.ConstArray(Ast.ArrayType(Uint32, 3),
+                                [Ast.ConstInt(32, uint32(i)) for i in (1,2,1)]),
+                            "global [3 x i32] [i32 1, i32 2, i32 1]")
+        check_result(ast, asm)
+    end
+    
+    #=
+    context("array") do
+        ast, asm = test_ast(
+            Ast.ArrayType(Ast.StructType(false, [Uint32]), 3),
+            Ast.ConstArray(Ast.StructType(false, [Uint32]),
+                [Ast.ConstStruct(nothing, false, [Ast.ConstInt(32, i)]) 
+                 for i in (1,2,3)]),
+        "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
+        check_result(ast, asm)
+    end
+    =#
+
+    context("undef") do
+        ast, asm = test_ast(Int32, Ast.ConstUndef(Int32), "global i32 undef")
+        check_result(ast, asm)
+    end
 end
+
 #=
-ast, asm = test_ast(Ast.StructType(false, [Uint32, Uint32]),
-                    Ast.ConstStruct(nothing,
-                                    false,
-                                    [Ast.ConstInt(32, 1), 
-                                     Ast.ConstInt(32, 1)]),
-                    "global { i32, i32 } { i32 1, i32 1 }")
+ast, asm = test_ast(
+    Ast.ArrayType(Ast.StructType(false, [Uint32]), 3),
+    Ast.ConstArray(Ast.StructType(false, [Uint32]),
+        [Ast.ConstStruct(nothing, false, [Ast.ConstInt(32, i) for i=(1,2,3)])]),
+    "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
 =#
