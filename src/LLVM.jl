@@ -12,7 +12,7 @@ include("ffi.jl")
 
 using .Types
 
-#include("enums.jl")
+include("enums.jl")
 include("context.jl")
 include("diagnostic.jl")
 include("module.jl")
