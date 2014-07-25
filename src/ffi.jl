@@ -318,10 +318,10 @@ get_constant_int_words(cnst) = begin
 end
 
 const_float_double_val(cnst) =
-    ccall((:LLVM_General_ConstFloatDoubleValue, libllvmgeneral), Cdouble, (ConstPtr,), cnst)
+    ccall((:LLVM_General_ConstFloatDoubleValue, libllvmgeneral), Float64, (ConstPtr,), cnst)
 
 const_float_val(cnst) =
-    ccall((:LLVM_General_ConstFloatFloatValue, libllvmgeneral), Cfloat, (ConstPtr,), cnst)
+    ccall((:LLVM_General_ConstFloatFloatValue, libllvmgeneral), Float32, (ConstPtr,), cnst)
 
 const_struct_in_ctx(ctx, constvals, ispacked::Bool) = begin
     n = length(constvals)
@@ -347,12 +347,12 @@ const_int_arbitrary_precision(typ, nwords, words) =
 
 const_float_arbitrary_precision(ctx, nbits, words, semantics) =
     ccall((:LLVM_General_ConstFloatOfArbitraryPrecision, libllvmgeneral), ConstPtr,
-          (ContextPtr, Cuint, Ptr{Uint64}, FloatSemantics),
+          (ContextPtr, Uint32, Ptr{Uint64}, FloatSemantics),
           ctx, nbits, words, semantics)
 
-get_const_float_words(cnst, bits) =
-    ccall((:LLVM_General_ConstFloatOfArbitraryPrecision, libllvmgeneral), Void,
-          (ContextPtr, Ptr{Uint64}), cnst, bits)
+get_const_float_words!(cnst, bits) =
+    ccall((:LLVM_General_GetConstantFloatWords, libllvmgeneral), Void,
+          (ConstPtr, Ptr{Uint64}), cnst, bits)
 
 constant_vector(cnsts) = begin
     n = length(cnsts)
@@ -1527,9 +1527,9 @@ array_type(typ, n) =
     ccall((:LLVM_General_ArrayType, libllvm), TypePtr, (TypePtr, Uint64), typ, n)  
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeStruct.html#gaff2af74740a22f7d18701f0d8c3e5a6f
-struct_type_in_ctx(ctx, typs, len, packed::Bool) = 
+struct_type_in_ctx(ctx, typs, packed::Bool) = 
     ccall((:LLVMStructTypeInContext, libllvm), TypePtr, 
-          (ContextPtr, Ptr{TypePtr}, Cuint, LLVMBool), ctx, typs, len, packed) 
+          (ContextPtr, Ptr{TypePtr}, Cuint, LLVMBool), ctx, typs, length(typs), packed) 
 
 create_named_stuct(ctx, name) =
     ccall((:LLVM_General_StructCreateNamed, libllvmgeneral), TypePtr,

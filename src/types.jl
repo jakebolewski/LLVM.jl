@@ -2,7 +2,8 @@ module Types
 
 export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, 
        ConstPtr, UserPtr, GlobalAliasPtr, FunctionPtr, RawOStreamPtr,
-       MemoryBufferPtr, SMDiagnosticPtr, BasicBlockPtr, isnull
+       MemoryBufferPtr, SMDiagnosticPtr, BasicBlockPtr, BuilderPtr, MDNodePtr,
+       isnull
 
 typealias LLVMBool Cint
 typealias CodeModel Cint

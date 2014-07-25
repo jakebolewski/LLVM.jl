@@ -12,6 +12,16 @@ for ty in [:ModulePtr, :TypePtr, :ValuePtr, :BasicBlockPtr, :BuilderPtr,
     end
 end
 
+baremodule FloatSemantics
+    IEEEhalf   = 0
+    IEEEsingle = 1
+    IEEEdouble = 2
+    IEEEquad   = 3
+    PPCDoubleDouble   = 4
+    x87DoubleExtended = 5
+    bogus = 6
+end
+
 baremodule AttributeEnum
     z_ext_attribute = 1
     s_ext_attribute = 2
@@ -50,7 +60,7 @@ baremodule TypeKindEnum
     ppc_fp128 = 6   # 128 bit floating point type (two 64 bits)
     label     = 7   # labels
     integer   = 8   # arbitrary bit width integers
-    function_ = 9   # functions
+    func      = 9   # functions
     struct    = 10  # structures
     array     = 11  # arrays
     pointer   = 12  # pointers

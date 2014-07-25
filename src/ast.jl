@@ -20,7 +20,6 @@ immutable Linkage{T} <: LLVMLinkage end
 Base.convert(::Type{LLVMLinkage}, enum::Integer) = 
     enum == 0 ? Linkage{:External}() : error("unknown")
 
-typealias LLVMFloat Union(Float16, Float32, Float64)
 
 # -----------------------------------------------------------------------------
 # Ast Names
@@ -98,15 +97,15 @@ end
 # -----------------------------------------------------------------------------
 # Floating Point Format 
 # -----------------------------------------------------------------------------
-abstract FloatingPointFormat <: LLVMAstNode
+abstract FloatFormat <: LLVMAstNode
 
-immutable IEEE <: FloatingPointFormat
+immutable IEEE <: FloatFormat 
 end
 
-immutable DoubleExtended <: FloatingPointFormat
+immutable DoubleExtended <: FloatFormat 
 end
 
-immutable PairOfFloats <: FloatingPointFormat
+immutable PairOfFloats <: FloatFormat 
 end
 
 # -----------------------------------------------------------------------------
@@ -174,6 +173,8 @@ typealias FloatCmpPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, ORD,
 # -----------------------------------------------------------------------------
 abstract LLVMType <: LLVMAstNode
 
+typealias LLVMFloat Union(Float16, Float32, Float64)
+
 # http://llvm.org/docs/LangRef.html#void-type 
 immutable VoidType <: LLVMType
 end
@@ -193,10 +194,14 @@ immutable PtrType <: LLVMType
 end
 
 # http://llvm.org/docs/LangRef.html#floating-point-types
-immutable FPType <: LLVMType
+immutable FloatType <: LLVMType
     nbits::Int
-    fmt::FloatingPointFormat
+    fmt::FloatFormat
 end
+
+Base.convert(::Type{LLVMType}, ::Type{Float16}) = FloatType(16, IEEE())
+Base.convert(::Type{LLVMType}, ::Type{Float32}) = FloatType(32, IEEE())
+Base.convert(::Type{LLVMType}, ::Type{Float64}) = FloatType(64, IEEE())
 
 # http://llvm.org/docs/LangRef.html#function-type
 immutable FunctionType <: LLVMType

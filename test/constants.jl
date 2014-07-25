@@ -23,6 +23,22 @@ function check_result(ast, asm)
     end 
 end
 
+test_float_roundtrip{T}(::Type{T}, ctx, n) = begin
+    for i = 1:n
+        v  = rand(T)
+        a1 = LLVM.Ast.ConstFloat(v)
+        
+        es = LLVM.EncodeState(ctx)
+        c  = LLVM.encode_llvm(es, a1)
+
+        ds = LLVM.DecodeState(ctx)
+        a2 = LLVM.decode_llvm(ds, c)
+        @assert a1 == a2
+    end 
+end 
+
+const ctx = LLVM.global_ctx()
+
 test_ast(typ, val, str) = begin
     ast = Ast.Module("<string>", nothing, nothing, [
             Ast.GlobalDefinition(
@@ -40,6 +56,7 @@ test_ast(typ, val, str) = begin
 """
     return (ast, astr)
 end
+
 
 facts("test constants") do
     context("integer") do
@@ -69,11 +86,55 @@ facts("test constants") do
                             "global i65 -1")
         check_result(ast, asm)
     end
-end 
+    
+    context("half") do
+        test_float_roundtrip(Float16, ctx, 1e5)
+
+        ast, asm = test_ast(Float16,
+                            Ast.ConstFloat(float16(3.5645)),
+                            "global half 0xH4321")
+        check_result(ast, asm)
+    end
+
+    context("single") do
+        test_float_roundtrip(Float32, ctx, 1e5)
+
+        ast, asm = test_ast(Float32,
+                            Ast.ConstFloat(1.0f0),
+                            "global float 1.000000e+00")
+        check_result(ast, asm)
+    end
+    
+    context("double") do
+        test_float_roundtrip(Float64, ctx, 1e5)
+        ast, asm = test_ast(Float64,
+                            Ast.ConstFloat(1.0),
+                            "global double 1.000000e+00")
+        check_result(ast, asm)
+    end
+
+    # crazy float types are missing...
+    
+    #=
+    context("struct") do
+        ast, asm = test_ast(Ast.StructType(false, [Uint32, Uint32]),
+                            Ast.ConstStruct(nothing, 
+                                            false,
+                                            [Ast.ConstInt(32, 1), 
+                                             Ast.ConstInt(32, 1)]),
+                            "global { i32, i32 } { i32 1, i32 1 }")
+        check_result(ast, asm)
+    end 
+    =#
+end
 
 #=
-ctx = LLVM.global_ctx()
-ast, asm = test_ast(Uint32, one(Uint32), "global i32 1")
-modh = LLVM.module_from_ast(ctx, ast)
-res = LLVM.module_to_ast(ctx, modh)
+ast, asm = test_ast(Ast.StructType(false, [Uint32, Uint32]),
+                    Ast.ConstStruct(nothing, 
+                                    false 
+                                    [Ast.ConstInt(32, 1), 
+                                     Ast.ConstInt(32, 1)]),
+                    "global { i32, i32 } { i32 1, i32 1 }")
+mod = LLVM.module_from_assembly(ctx, asm)
+res = LLVM.module_to_ast(ctx, mod)
 =#

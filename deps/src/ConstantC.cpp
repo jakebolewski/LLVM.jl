@@ -103,7 +103,9 @@ LLVMValueRef LLVM_General_ConstFloatOfArbitraryPrecision(
 
 void LLVM_General_GetConstantFloatWords(LLVMValueRef v, uint64_t *bits) {
 	APInt a = unwrap<ConstantFP>(v)->getValueAPF().bitcastToAPInt();
-	for(unsigned i=0; i != a.getNumWords(); ++i) bits[i] = a.getRawData()[i];
+	for(unsigned i=0; i != a.getNumWords(); ++i) {
+        bits[i] = a.getRawData()[i];
+    }
 }
 
 }

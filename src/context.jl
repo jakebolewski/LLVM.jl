@@ -14,6 +14,7 @@ type Context
     end 
 end 
 
+Base.convert(::Type{ContextPtr}, ctx::Context) = ctx.handle
 Base.(:(==))(ctx1::Context, ctx2::Context) = ctx1.handle === ctx2.handle
 
 create_ctx() = Context(FFI.create_ctx())
