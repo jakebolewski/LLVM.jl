@@ -299,7 +299,7 @@ isa_constant_int(val) =
     bool(ccall((:LLVMIsAConstantInt, libllvm), Cuint, (ValuePtr,), val))
 
 get_constant_operand(cnst, idx) = begin
-    val > zero(val) || throw(BoundsError())
+    idx > zero(idx) || throw(BoundsError())
     ccall((:LLVMGetOperand, libllvm), ConstPtr, (ConstPtr, Cuint), cnst, idx-1)
 end
 
@@ -326,7 +326,7 @@ const_float_val(cnst) =
 const_struct_in_ctx(ctx, constvals, ispacked::Bool) = begin
     n = length(constvals)
     ccall((:LLVMConstStructInContext, libllvm), ConstPtr,
-          (TypePtr, Ptr{ConstPtr}, Cuint, LLVMBool),  ctx, constvals, n, ispacked)
+          (ContextPtr, Ptr{ConstPtr}, Cuint, LLVMBool),  ctx, constvals, n, ispacked)
 end
 
 const_named_struct(typ, constvals) = begin

@@ -88,8 +88,7 @@ facts("test constants") do
     end
     
     context("half") do
-        test_float_roundtrip(Float16, ctx, 1e5)
-
+        #test_float_roundtrip(Float16, ctx, 1e5)
         ast, asm = test_ast(Float16,
                             Ast.ConstFloat(float16(3.5645)),
                             "global half 0xH4321")
@@ -97,8 +96,7 @@ facts("test constants") do
     end
 
     context("single") do
-        test_float_roundtrip(Float32, ctx, 1e5)
-
+        #test_float_roundtrip(Float32, ctx, 1e5)
         ast, asm = test_ast(Float32,
                             Ast.ConstFloat(1.0f0),
                             "global float 1.000000e+00")
@@ -106,7 +104,7 @@ facts("test constants") do
     end
     
     context("double") do
-        test_float_roundtrip(Float64, ctx, 1e5)
+        #test_float_roundtrip(Float64, ctx, 1e5)
         ast, asm = test_ast(Float64,
                             Ast.ConstFloat(1.0),
                             "global double 1.000000e+00")
@@ -115,7 +113,6 @@ facts("test constants") do
 
     # crazy float types are missing...
     
-    #=
     context("struct") do
         ast, asm = test_ast(Ast.StructType(false, [Uint32, Uint32]),
                             Ast.ConstStruct(nothing, 
@@ -125,13 +122,11 @@ facts("test constants") do
                             "global { i32, i32 } { i32 1, i32 1 }")
         check_result(ast, asm)
     end 
-    =#
 end
-
 #=
 ast, asm = test_ast(Ast.StructType(false, [Uint32, Uint32]),
-                    Ast.ConstStruct(nothing, 
-                                    false 
+                    Ast.ConstStruct(nothing,
+                                    false,
                                     [Ast.ConstInt(32, 1), 
                                      Ast.ConstInt(32, 1)]),
                     "global { i32, i32 } { i32 1, i32 1 }")

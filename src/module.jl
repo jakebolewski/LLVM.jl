@@ -1,7 +1,6 @@
 #------------------------------------------------------------------------------
 # Module 
 #------------------------------------------------------------------------------
-
 type DecodeState
     ctx::Context
     global_var_num::Dict{GlobalValuePtr, Int}
@@ -10,12 +9,14 @@ type DecodeState
     named_type_num::Dict{TypePtr,Int}
     types_to_define::Vector{TypePtr}
 end
-DecodeState(ctx::Context) = DecodeState(ctx,
-                                        Dict{GlobalValuePtr,Int}(),
-                                        Dict{ValuePtr,Int}(),
-                                        -1,
-                                        Dict{TypePtr,Int}(),
-                                        TypePtr[]) 
+
+DecodeState(ctx::Context) = 
+    DecodeState(ctx,
+                Dict{GlobalValuePtr,Int}(),
+                Dict{ValuePtr,Int}(),
+                -1,
+                Dict{TypePtr,Int}(),
+                TypePtr[]) 
 
 get_global_name(st::DecodeState, val::GlobalValuePtr) = begin
     name = FFI.get_value_name(val)
@@ -47,14 +48,14 @@ save_named_type(st::DecodeState, typ::TypePtr) =
 take_type_to_define(st::DecodeState) =
     (pop!(st.types_to_define); return st)
 
-decode_llvm(st::DecodeState, th::TypePtr) = begin 
-    k = FFI.get_type_kind(th)
+decode_llvm(st::DecodeState, tptr::TypePtr) = begin 
+    k = FFI.get_type_kind(tptr)
     if k == TypeKind.integer
-        nbits = FFI.get_int_type_width(th)    
+        nbits = FFI.get_int_type_width(tptr)    
         return Ast.IntType(nbits) 
     elseif k == TypeKind.pointer
-        etyp = decode_llvm(st, FFI.get_elem_type(th))
-        addr = Ast.AddrSpace(FFI.get_ptr_address_space(th))
+        etyp = decode_llvm(st, FFI.get_elem_type(tptr))
+        addr = Ast.AddrSpace(FFI.get_ptr_address_space(tptr))
         return Ast.PtrType(etyp, addr)
     elseif k == TypeKind.half
         return Ast.FloatType(16, Ast.IEEE())
@@ -62,13 +63,30 @@ decode_llvm(st::DecodeState, th::TypePtr) = begin
         return Ast.FloatType(32, Ast.IEEE())
     elseif k == TypeKind.double
         return Ast.FloatType(64, Ast.IEEE())
+    elseif k == TypeKind.struct
+        if FFI.is_literal_struct(tptr)
+            packed = FFI.is_packed_struct(tptr)
+            typs = decode_llvm(st, FFI.get_struct_elem_types(tptr))
+            return Ast.StructType(packed, typs)
+        else
+            error("unimplemented")
+        end 
     else
         error("unimplemented")
     end
 end
 
+decode_llvm(st::DecodeState, typs::Vector{TypePtr}) = begin
+    asttyps = Array(Ast.LLVMType, length(typs))
+    for i = 1:length(asttyps)
+        asttyps[i] = decode_llvm(st, typs[i])
+    end
+    return asttyps
+end
+
 decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
-    typ = decode_llvm(st, FFI.llvm_typeof(cptr))
+    ftyp = FFI.llvm_typeof(cptr)
+    typ  = decode_llvm(st, ftyp)
     subclass_id = FFI.get_value_subclass_id(cptr)
     nops = FFI.get_num_operands(cptr)
     
@@ -94,12 +112,19 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         else
             error("unimplemented constant floating point type")
         end
+    elseif subclass_id == ValueSubclass.const_struct
+        name = isa(typ, Ast.NamedTypeRef) ? typ.val : nothing 
+        p = FFI.is_packed_struct(ftyp)
+        n = FFI.get_num_operands(cptr)
+        vals = Array(Ast.Constant, n)
+        for i = 1:n
+            vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
+        end
+        return Ast.ConstStruct(name, p, vals) 
     else
-        error("unimplemented")
+        error("unimplemented subclassid : $subclass_id")
     end
 end
-
-decode_llvm(st::DecodeState, ptr::Ptr{Uint8}) = bytestring(ptr)
 
 decode_llvm(buf::MemoryBufferPtr) = begin
     start = FFI.get_buffer_start(buf)
@@ -117,7 +142,7 @@ immutable ForwardVal <: LocalVal
 end 
 
 immutable DefinedVal <: LocalVal
-    val::ValPtr
+    val::ValuePtr
 end 
 
 type EncodeState
@@ -210,7 +235,8 @@ encode_llvm(st::EncodeState, struct::Ast.ConstStruct) = begin
     if is(struct.name, nothing)
         return FFI.const_struct_in_ctx(st.ctx, cptrs, struct.packed)
     else
-        typ = lookup_named_type(name)
+        # lookup named type from encoding state
+        typ = st.named_types[struct.name]::TypePtr
         return FFI.const_named_struct(typ, cptrs)
     end 
 end
