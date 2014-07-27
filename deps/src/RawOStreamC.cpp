@@ -15,7 +15,8 @@ LLVMBool LLVM_General_WithFileRawOStream(
     const void *data
 ) {
 	std::string e;
-	raw_fd_ostream os(filename, e, excl ? sys::fs::F_Excl : sys::fs::F_None);
+	raw_fd_ostream os(filename, e, excl ? sys::fs::F_Excl :
+					      sys::fs::F_None);
 	if (!e.empty()) {
 		error = strdup(e.c_str());
 		return false;

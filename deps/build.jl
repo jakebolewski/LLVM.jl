@@ -44,6 +44,6 @@ const libllvm = find_library(["libLLVM-$LLVMVER"])
 @assert(libllvm != "", "Failed to find llvm library libLLVM-$LLVMVER") 
 """
 
-fh = open(joinpath(DIR, "ext.jl"), "w")
-write(fh, EXTSRC)
-close(fh)
+open(joinpath(DIR, "ext.jl"), "w") do fh
+    write(fh, EXTSRC)
+end
