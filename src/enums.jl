@@ -100,8 +100,8 @@ baremodule Opcodes
     const sitofp = 36
     const fptrunc = 37
     const fpext = 38
-    const pointertoint = 39
-    const inttopointer = 40
+    const ptrtoint = 39
+    const inttoptr = 40
     const bitcast = 41
     const addrspacecast = 60
 

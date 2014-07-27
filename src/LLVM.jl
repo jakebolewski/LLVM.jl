@@ -8,11 +8,11 @@ include("ast.jl")
 include("datalayout.jl")
 
 include("types.jl")
+include("enums.jl")
 include("ffi.jl")
 
 using .Types
 
-include("enums.jl")
 include("instrdef.jl")
 include("context.jl")
 include("diagnostic.jl")

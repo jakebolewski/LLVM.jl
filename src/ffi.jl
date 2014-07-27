@@ -1,8 +1,7 @@
 module FFI
 
+import ..libllvm, ..libllvmgeneral, ..Opcodes
 using ..Types
-
-import ..libllvm, ..libllvmgeneral
 
 typealias TargetOptionFlag Cint
 typealias MemoryOrdering   Cint
@@ -26,6 +25,7 @@ typealias RelocModel       Cint
 typealias CodeModel        Cint
 typealias CodeGenOptLevel  Cint
 typealias DiagnosticKind   Cint
+typealias LLVMOpcode       Cint
 
 # deal with LLVM's linked list structures
 list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
@@ -132,6 +132,10 @@ pos_builder_end(bld, bb) =
     ccall((:LLVMPositionBuilderAtEnd, libllvm), Void, 
           (BuilderPtr, BasicBlockPtr), bld, bb) 
 
+build_ret_void(bld) =
+    ccall((:LLVMBuildRetVoid, libllvm), InstructionPtr,
+          (BuilderPtr,), bld)
+
 build_ret(bld, val) = 
     ccall((:LLVMPositionBuilderAtEnd, libllvm), InstructionPtr,
           (BuilderPtr, ValuePtr), bld, val)
@@ -167,11 +171,104 @@ build_resume(bld, val) =
 build_unreachable(bld) =
     ccall((:LLVMBuildUnreachable, libllvm), InstructionPtr, (BuilderPtr,), bld)
 
-# XXX TODO builder macros XXX
+# build arithmetic instructions
+for llvm_inst in [:LLVMBuildAdd,
+                  :LLVMBuildNSWAdd,
+                  :LLVMBuildNUWAdd,
+                  :LLVMBuildFAdd,
+                  :LLVMBuildSub,
+                  :LLVMBuildNSWSub,
+                  :LLVMBuildNUWSub,
+                  :LLVMBuildFSub,
+                  :LLVMBuildMul,
+                  :LLVMBuildNSWMul,
+                  :LLVMBuildNUWMul,
+                  :LLVMBuildFMul,
+                  :LLVMBuildUDiv,
+                  :LLVMBuildSDiv,
+                  :LLVMBuildExactSDiv,
+                  :LLVMBuildFDiv,
+                  :LLVMBuildURem,
+                  :LLVMBuildSRem,
+                  :LLVMBuildFRem,
+                  :LLVMBuildShl,
+                  :LLVMBuildLShr,
+                  :LLVMBuildAShr,
+                  :LLVMBuildAnd,
+                  :LLVMBuildOr,
+                  :LLVMBuildXor]
+    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMBuild")))
+    fname = symbol(string("build_", iname))
+    @eval begin
+        $fname(bld, lhs, rhs, name) = 
+            ccall((:($llvm_inst), libllvm), InstructionPtr, 
+                  (BuilderPtr, ValuePtr, ValuePtr, Ptr{Uint8}), bld, lhs, rhs, name) 
+    end
+end
+
+build_binop(bld, opcode, lhs, rhs, name) =
+    ccall((:LLVMBuildBinOp, libllvm), InstructionPtr,
+          (BuilderPtr, LLVMOpcode, ValuePtr, ValuePtr, Ptr{Uint8}),
+          bld, opcode, lhs, rhs, name)
+
+# build unary instructions
+for llvm_inst in [:LLVMBuildNeg, 
+                  :LLVMBuildNSWNeg,
+                  :LLVMBuildNUWNeg, 
+                  :LLVMBuildFNeg, 
+                  :LLVMBuildNot]
+    iname = symbol(lowercase(lstrip(string(llvm_inst), collect("LLVMBuild"))))
+    fname = symbol(string("build_", iname))
+    @eval begin
+        $fname(bld, val, name) = 
+            ccall((:($llvm_inst), libllvm), InstructionPtr, 
+                  (BuilderPtr, ValuePtr, Ptr{Uint8}), bld, val, name)
+    end
+end
+
+# build casts
+for llvm_inst in [:LLVMBuildTrunc,
+                  :LLVMBuildZExt,
+                  :LLVMBuildSExt,
+                  :LLVMBuildFPToUI,
+                  :LLVMBuildFPToSI,
+                  :LLVMBuildUIToFP,
+                  :LLVMBuildSIToFP,
+                  :LLVMBuildFPTrunc,
+                  :LLVMBuildFPExt,
+                  :LLVMBuildPtrToInt,
+                  :LLVMBuildIntToPtr,
+                  :LLVMBuildBitCast,
+                  :LLVMBuildAddrSpaceCast,
+                  :LLVMBuildZExtOrBitCast,
+                  :LLVMBuildSExtOrBitCast,
+                  :LLVMBuildTruncOrBitCast,
+                  :LLVMBuildCast,
+                  :LLVMBuildPointerCast,
+                  :LLVMBuildIntCast,
+                  :LLVMBuildFPCast]
+    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMBuild")))
+    if endswith(iname, "orbitcast")
+        iname = replace(iname, "orbitcast", "_or_bitcast")
+    end
+    fname = symbol(string("build_", iname))
+    @eval begin
+        $fname(bld, val, name) = 
+            ccall((:($llvm_inst), libllvm), InstructionPtr, 
+                  (BuilderPtr, ValuePtr, Ptr{Uint8}), bld, val, name) 
+    end
+end
+
+bulild__malloc(bld, typ, val, name) =
+    ccall((:LLVMBuildArrayMalloc, libllvm), InstructionPtr,
+          (BuilderPtr, TypePtr, ValuePtr, Ptr{Uint8}), bld, typ, val, name)
 
 build_alloca(bld, typ, val, name) =
     ccall((:LLVMBuildArrayAlloca, libllvm), InstructionPtr,
           (BuilderPtr, TypePtr, ValuePtr, Ptr{Uint8}), bld, typ, val, name)
+
+build_free(bld, ptrval) = 
+    ccall((:LLVMBuildFree, libllvm), InstructionPtr, (BuilderPtr, ValuePtr), bld, ptr)
 
 build_load(bld, isvolatile, ptr, atomicorder, syncscope, align, name) =
     ccall((:LLVM_General_BuildLoad, libllvmgeneral), InstructionPtr,
@@ -256,13 +353,14 @@ build_shuffle_vector(bld, v1, v2, mask, name) =
     ccall((:LLVMBuildShuffleVector, libllvm), InstructionPtr,
           (BuilderPtr, ValuePtr, ValuePtr, ConstPtr, Ptr{Uint8}),
           bld, v1, v2, mask, name)
-
+# TODO: llvm3.5
 build_extract_value(bld, a, idxs, name) = begin
     nidxs = length(idxs)
     ccall((:LLVM_General_BuildExtractValue, libllvmgeneral), InstructionPtr,
           (BuilderPtr, ValuePtr, Ptr{Cuint}, Cuint, Ptr{Uint8}), bld, val, idxs, name)
 end 
 
+# TODO: llvm3.5
 build_insert_value(bld, a, val, idxs, name) = begin
     nidxs = length(idxs)
     ccall((:LLVM_General_BuildInsertValue, libllvmgeneral), InstructionPtr,
@@ -394,7 +492,7 @@ for llvm_inst in [:LLVMConstNeg,
                   :LLVMConstNUWNeg, 
                   :LLVMConstFNeg, 
                   :LLVMConstNot]
-    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMConst")))
+    iname = symbol(lowercase(lstrip(string(llvm_inst), collect("LLVMConst"))))
     fname = symbol(string("const_", iname))
     @eval begin
         $fname(val) = 
@@ -428,7 +526,7 @@ for llvm_inst in [:LLVMConstAdd,
                   :LLVMConstShl,
                   :LLVMConstLShr,
                   :LLVMConstAShr]
-    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMConst")))
+    iname = symbol(lowercase(lstrip(string(llvm_inst), collect("LLVMConst"))))
     fname = symbol(string("const_", iname))
     @eval begin
         $fname(lhs, rhs) = 

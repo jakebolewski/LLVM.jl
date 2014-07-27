@@ -57,6 +57,7 @@ test_ast(typ, val, str) = begin
     return (ast, astr)
 end
 
+#= 
 facts("test constants") do
     context("integer") do
         ast, asm = test_ast(Uint32,
@@ -147,7 +148,6 @@ facts("test constants") do
         check_result(ast, asm)
     end
     
-    #=
     context("binop / cast") do
         ast, asm = test_ast(Int64,
                     Ast.ConstAdd(false, false,
@@ -158,9 +158,8 @@ facts("test constants") do
                      "global i64 add (i64 ptrtoint (i32* @1 to i64), i64 2)")
         check_result(ast, asm)
     end 
-    =#
 end
-
+=#
 #=
 ast, asm = test_ast(
     Ast.ArrayType(Ast.StructType(false, [Uint32]), 3),
@@ -171,7 +170,6 @@ mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
 =#
 
-#=
 ast, asm = test_ast(Int64,
                 Ast.ConstAdd(false, false,
                     Ast.ConstPtrToInt(
@@ -182,4 +180,3 @@ ast, asm = test_ast(Int64,
 
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
-=#

@@ -91,8 +91,9 @@ end
 decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
     ftyp = FFI.llvm_typeof(cptr)
     typ  = decode_llvm(st, ftyp)
-    subclass_id = FFI.get_value_subclass_id(cptr)
     nops = FFI.get_num_operands(cptr)
+
+    subclass_id = FFI.get_value_subclass_id(cptr)
     
     if subclass_id == ValueSubclass.const_int
         words  = FFI.get_constant_int_words(cptr)
@@ -107,7 +108,9 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         return Ast.ConstUndef(typ)
     
     elseif subclass_id == ValueSubclass.const_expr
-        @show FFI.get_const_cpp_opcode(cptr)
+        @show op = FFI.get_const_cpp_opcode(cptr)
+        @show FFI.get_const_opcode(cptr)
+        @show InstructionDefs[op]
         error("HEKLEJL")
 
     elseif subclass_id == ValueSubclass.const_fp
