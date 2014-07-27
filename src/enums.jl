@@ -52,3 +52,80 @@ baremodule ValueSubclass
     const fixed_stack_pseudo_source_value = 21
     const instruction = 22
 end
+
+baremodule Opcodes
+    # Terminator instructions
+    const ret = 1
+    const br = 2
+    const switch = 3
+    const indirectbr = 4
+    const invoke = 5
+    const unreachable = 7
+
+    # Standard binary operators
+    const add = 8
+    const fadd = 9
+    const sub = 10
+    const fsub = 11
+    const mul = 12
+    const fmul = 13
+    const udiv = 14
+    const sdiv = 15
+    const fdiv = 16
+    const urem = 17
+    const srem = 18
+    const frem = 19
+
+    # Logical operators
+    const shl = 20
+    const lshr = 21
+    const ashr = 22
+    const and = 23
+    const or = 24
+    const xor = 25
+
+    # Memory operators
+    const alloca = 26
+    const load  = 27
+    const store = 28
+    const get_element_ptr = 29
+
+    # Cast operators
+    const trunc = 30
+    const zext = 31
+    const sext = 32
+    const fptoui = 33
+    const fptosi = 34
+    const uitofp = 35
+    const sitofp = 36
+    const fptrunc = 37
+    const fpext = 38
+    const pointertoint = 39
+    const inttopointer = 40
+    const bitcast = 41
+    const addrspacecast = 60
+
+    # Other operators 
+    const icmp = 42
+    const fcmp = 43
+    const phi = 44
+    const call = 45
+    const select = 46
+    const userop1 = 47
+    const userop2 = 48
+    const vaarg = 49
+    const extract_elem = 50
+    const insert_elem = 51
+    const shuffle_vector = 52
+    const extract_value = 53
+    const insert_value = 54
+
+    # Atomic operators
+    const fence = 55
+    const atomic_cmpxchg = 56
+    const atomic_rmw = 57
+
+    # Exception handling operators
+    const resume = 58
+    const landingpad = 59
+end

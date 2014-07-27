@@ -342,7 +342,8 @@ end
 
 get_const_data_seq_elem_as_const(val, idx) = begin
     idx > zero(idx) || throw(BoundsError())
-    ccall((:LLVM_General_GetConstantDataSequentialElementAsConstant, libllvmgeneral), ConstPtr,
+    ccall((:LLVM_General_GetConstantDataSequentialElementAsConstant, libllvmgeneral), 
+          ConstPtr,
           (ConstPtr, Uint32), val, idx-1) 
 end 
 
@@ -381,29 +382,142 @@ constant_binary_op(opcode, op1, op2) =
     ccall((:LLVM_General_ConstBinaryOperator, libllvmgeneral), ConstPtr,
           (CPPOpcode, ConstPtr, ConstPtr), opcode, op1, op2)
 
-#TODO: Const instructions 
+get_const_opcode(cnst) =
+    ccall((:LLVMGetConstOpcode, libllvm), CPPOpcode, (ConstPtr,), cnst)
 
-constant_getelem_ptr(cnst, idxs) = begin
-    n = length(idxs)
-    ccall((:LLVMConstGEP, libllvm), ConstPtr, (ConstPtr, Ptr{ConstPtr}, Cuint), cnst, idxs, n)
+get_const_cpp_opcode(cnst) = 
+    ccall((:LLVM_General_GetConstCPPOpcode, libllvmgeneral), CPPOpcode, (ConstPtr,), cnst)
+
+# constant unary instructions
+for llvm_inst in [:LLVMConstNeg, 
+                  :LLVMConstNSWNeg,
+                  :LLVMConstNUWNeg, 
+                  :LLVMConstFNeg, 
+                  :LLVMConstNot]
+    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMConst")))
+    fname = symbol(string("const_", iname))
+    @eval begin
+        $fname(val) = 
+            ccall((:($llvm_inst), libllvm), ConstPtr, (ConstPtr,), val) 
+    end
 end
 
-constant_inbounds_getelem_ptr(cnst, idxs) = begin
+# constant binary instructions
+for llvm_inst in [:LLVMConstAdd,
+                  :LLVMConstNSWAdd,
+                  :LLVMConstNUWAdd,
+                  :LLVMConstFAdd,
+                  :LLVMConstSub,
+                  :LLVMConstNSWSub,
+                  :LLVMConstNUWSub,
+                  :LLVMConstFSub,
+                  :LLVMConstMul,
+                  :LLVMConstNSWMul,
+                  :LLVMConstNUWMul,
+                  :LLVMConstFMul,
+                  :LLVMConstUDiv,
+                  :LLVMConstSDiv,
+                  :LLVMConstExactSDiv,
+                  :LLVMConstFDiv,
+                  :LLVMConstURem,
+                  :LLVMConstSRem,
+                  :LLVMConstFRem,
+                  :LLVMConstAnd,
+                  :LLVMConstOr,
+                  :LLVMConstXor,
+                  :LLVMConstShl,
+                  :LLVMConstLShr,
+                  :LLVMConstAShr]
+    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMConst")))
+    fname = symbol(string("const_", iname))
+    @eval begin
+        $fname(lhs, rhs) = 
+            ccall((:($llvm_inst), libllvm), ConstPtr, (ConstPtr, ConstPtr), lhs, rhs) 
+    end
+end
+
+get_const_icmp_predicate(cnst) =
+    ccall((:LLVM_General_GetConstPredicate, libllvmgeneral), ICmpPredicate, 
+          (ConstPtr,), cnst)
+
+const_icmp(pred, lhs, rhs) =
+    ccall((:LLVMConstICmp, libllvm), ConstPtr, 
+          (ICmpPredicate, ConstPtr, ConstPtr), pred, lhs, rhs)
+
+get_const_fcmp_predicate(cnst) =
+    ccall((:LLVM_General_GetConstPredicate, libllvmgeneral), FCmpPredicate, 
+          (ConstPtr,), cnst)
+
+const_fcmp(pred, lhs, rhs) =
+    ccall((:LLVMConstFCmp, libllvm), ConstPtr,
+          (FCmpPredicate, ConstPtr, ConstPtr), pred, lhs, rhs)
+
+const_getelem_ptr(cnst, idxs) = begin
+    n = length(idxs)
+    ccall((:LLVMConstGEP, libllvm), ConstPtr, 
+          (ConstPtr, Ptr{ConstPtr}, Cuint), cnst, idxs, n)
+end
+
+const_inbounds_getelem_ptr(cnst, idxs) = begin
     n = length(idxs)
     ccall((:LLVMConstInBoundsGEP, libllvm), ConstPtr,
           (ConstPtr, Ptr{ConstPtr}, Cuint), cnst, idxs, n)
 end
 
-get_const_cpp_opcode(cnst) = 
-    ccall((:LLVM_General_GetConstCPPOpcode, libllvmgeneral), CPPOpcode, (ConstPtr,), cnst)
+# constant cast instruction
+for llvm_inst in [:LLVMConstTrunc,
+                  :LLVMConstSExt,
+                  :LLVMConstZExt,
+                  :LLVMConstFPTrunc,
+                  :LLVMConstFPExt,
+                  :LLVMConstUIToFP,
+                  :LLVMConstSIToFP,
+                  :LLVMConstFPToUI,
+                  :LLVMConstFPToSI,
+                  :LLVMConstPtrToInt,
+                  :LLVMConstIntToPtr,
+                  :LLVMConstBitCast,
+                  :LLVMConstAddrSpaceCast,
+                  :LLVMConstZExtOrBitCast,
+                  :LLVMConstSExtOrBitCast,
+                  :LLVMConstTruncOrBitCast,
+                  :LLVMConstPointerCast,
+                  :LLVMConstFPCast]
+    iname = lowercase(lstrip(string(llvm_inst), collect("LLVMConst")))
+    fname = symbol(string("const_", iname))
+    @eval begin
+        $fname(val, typ) = 
+            ccall((:($llvm_inst), libllvm), ConstPtr, (ConstPtr, TypePtr), val, typ) 
+    end
+end
 
-get_constant_icmp_predicate(cnst) =
-    ccall((:LLVM_General_GetConstPredicate, libllvmgeneral), ICmpPredicate, (ConstPtr,), cnst)
+const_intcast(val, typ, issigned::Bool) = 
+    ccall((:LLVMConstIntCast, libllvm), ConstPtr,
+          (ConstPtr, TypePtr, LLVMBool), val, typ, issigned)
 
-get_constant_fcmp_predicate(cnst) =
-    ccall((:LLVM_General_GetConstPredicate, libllvmgeneral), FCmpPredicate, (ConstPtr,), cnst)
+const_select(cond, iftrue, iffalse) = 
+    ccall((:LLVMConstSelect, libllvm), ConstPtr,
+          (ConstPtr, ConstPtr, ConstPtr), cond, iftrue, iffalse)
 
-get_constant_indices(cnst) = begin
+const_extract_elem(vec, idx) = 
+    ccall((:LLVMConstExtractElement, libllvm), ConstPtr,
+          (ConstPtr, ConstPtr), vec, idx)
+
+const_insert_elem(vec, val, idx) =
+    ccall((:LLVMConstInsertElement, libllvm), ConstPtr,
+          (ConstPtr, ConstPtr, ConstPtr), vec, val, idx)
+
+const_shuffle_vector(vec1, vec2, mask) = 
+    ccall((:LLVMConstShuffleVector, libllvm), ConstPtr,
+          (ConstPtr, ConstPtr, ConstPtr), vec1, vec2, mask)
+
+const_extract_value(agg, idxs) = begin
+    n = length(idxs)
+    ccall((:LLVMConstExtractValue, libllvm), ConstPtr,
+          (ConstPtr, Ptr{Uint32}, Uint32), agg, uint32(idxs), n)
+end
+
+get_const_indices(cnst) = begin
     n = Cuint[0]
     ptr = ccall((:LLVM_General_GetConstIndices, libllvmgeneral), Ptr{Cuint},
                 (ConstPtr, Ptr{Cuint}), cnst, n)
@@ -421,10 +535,12 @@ block_address(val, bb) =
     ccall((:LLVMBlockAddress, libllvm), ConstPtr, (ValuePtr, BasicBlockPtr), val, bb)
 
 get_block_address_func(cnst) =
-    ccall((:LLVM_General_GetBlockAddressFunction, libllvmgeneral), ValuePtr, (ConstPtr,), cnst)
+    ccall((:LLVM_General_GetBlockAddressFunction, libllvmgeneral), ValuePtr, 
+          (ConstPtr,), cnst)
 
 get_block_address_block(cnst) = 
-    ccall((:LLVM_General_GetBlockAddressBlock, libllvmgeneral), BasicBlockPtr, (ConstPtr,), cnst)
+    ccall((:LLVM_General_GetBlockAddressBlock, libllvmgeneral), BasicBlockPtr, 
+          (ConstPtr,), cnst)
 
 #------------------------------------------------------------------------------
 # Context 
