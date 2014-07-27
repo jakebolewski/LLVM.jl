@@ -340,7 +340,7 @@ LLVMBool LLVM_General_TargetMachineEmit(
 		return true;
 	}
 	PassManager passManager;
-	passManager.add(new DataLayout(*td));
+	passManager.add(new DataLayoutPass(DataLayout(*td)));
 	if (tm.addPassesToEmitFile(passManager, destf, unwrap(codeGenFileType))) {
 		*ErrorMessage = strdup("TargetMachine can't emit a file of this type");
 		return true;

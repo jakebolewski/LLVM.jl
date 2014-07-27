@@ -4,16 +4,16 @@ immutable InstructionDef{T}
     capi_classname::String
 end
 
-const InstructionDefs = [
-	1 => InstructionDef{:Term}((1,"Ret","ReturnInst")...),
-	2 => InstructionDef{:Term}((2,"Br","BranchInst")...),
-	3 => InstructionDef{:Term}((3,"Switch","SwitchInst")...),
-	4 => InstructionDef{:Term}((4,"IndirectBr","IndirectBrInst")...),
-	5 => InstructionDef{:Term}((5,"Invoke","InvokeInst")...),
-	6 => InstructionDef{:Term}((6,"Resume","ResumeInst")...),
-	7 => InstructionDef{:Term}((7,"Unreachable","UnreachableInst")...),
-	8 => InstructionDef{:Binary}((8,"Add","BinaryOperator")...),
-	9 => InstructionDef{:Binary}((9,"FAdd","BinaryOperator")...),
+const InstructionDefs = (Int => InstructionDef)[
+	 1 => InstructionDef{:Term}((1,"Ret","ReturnInst")...),
+	 2 => InstructionDef{:Term}((2,"Br","BranchInst")...),
+	 3 => InstructionDef{:Term}((3,"Switch","SwitchInst")...),
+	 4 => InstructionDef{:Term}((4,"IndirectBr","IndirectBrInst")...),
+	 5 => InstructionDef{:Term}((5,"Invoke","InvokeInst")...),
+	 6 => InstructionDef{:Term}((6,"Resume","ResumeInst")...),
+	 7 => InstructionDef{:Term}((7,"Unreachable","UnreachableInst")...),
+	 8 => InstructionDef{:Binary}((8,"Add","BinaryOperator")...),
+	 9 => InstructionDef{:Binary}((9,"FAdd","BinaryOperator")...),
 	10 => InstructionDef{:Binary}((10,"Sub","BinaryOperator")...),
 	11 => InstructionDef{:Binary}((11,"FSub","BinaryOperator")...),
 	12 => InstructionDef{:Binary}((12,"Mul","BinaryOperator")...),

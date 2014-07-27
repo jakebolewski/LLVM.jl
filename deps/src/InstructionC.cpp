@@ -5,7 +5,8 @@
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Metadata.h"
-#include "llvm/Support/CallSite.h"
+#include "llvm/IR/CallSite.h"
+//#include "llvm/Support/CallSite.h"
 
 #include "llvm-c/Core.h"
 
@@ -133,11 +134,13 @@ void LLVM_General_SetInstrAlignment(LLVMValueRef l, unsigned a) {
 
 // ------------------------------------------------------------
 
+// TODO: this has both failure and success orderings
+//macro(AtomicCmpXchg)
+
 #define LLVM_GENERAL_FOR_EACH_ATOMIC_INST(macro) \
 	macro(Load) \
 	macro(Store) \
 	macro(Fence) \
-	macro(AtomicCmpXchg) \
 	macro(AtomicRMW)
 
 LLVMAtomicOrdering LLVM_General_GetAtomicOrdering(LLVMValueRef i) {

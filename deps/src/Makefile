@@ -16,8 +16,7 @@ JULIA_ROOT = /home/jake/Julia/julia
 CC  = clang
 CXX = clang
 
-#LLVM_CONFIG ?= $(JULIA_ROOT)/usr/bin/llvm-config
-LLVM_CONFIG = /usr/bin/llvm-config
+LLVM_CONFIG ?= $(JULIA_ROOT)/usr/bin/llvm-config
 
 LLVM_VER = $(shell $(LLVM_CONFIG) --version)
 
@@ -45,10 +44,10 @@ OBJS += AssemblyC.cpp.o \
 	MetadataC.cpp.o \
 	ModuleC.cpp.o \
 	PassManagerC.cpp.o \
-	SMDiagnosticC.cpp.o \
 	RawOStreamC.cpp.o \
-	TargetC.cpp.o \
+	SMDiagnosticC.cpp.o \
 	TypeC.cpp.o \
+	TargetC.cpp.o \
 	ValueC.cpp.o
 
 # OS and architecture

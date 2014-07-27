@@ -57,7 +57,6 @@ test_ast(typ, val, str) = begin
     return (ast, astr)
 end
 
-
 facts("test constants") do
     context("integer") do
         ast, asm = test_ast(Uint32,
@@ -147,6 +146,19 @@ facts("test constants") do
         ast, asm = test_ast(Int32, Ast.ConstUndef(Int32), "global i32 undef")
         check_result(ast, asm)
     end
+    
+    #=
+    context("binop / cast") do
+        ast, asm = test_ast(Int64,
+                    Ast.ConstAdd(false, false,
+                        Ast.ConstPtrToInt(
+                            Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)), 
+                            Int64),
+                        Ast.ConstInt(64, 2)),
+                     "global i64 add (i64 ptrtoint (i32* @1 to i64), i64 2)")
+        check_result(ast, asm)
+    end 
+    =#
 end
 
 #=
@@ -155,6 +167,19 @@ ast, asm = test_ast(
     Ast.ConstArray(Ast.StructType(false, [Uint32]),
         [Ast.ConstStruct(nothing, false, [Ast.ConstInt(32, i) for i=(1,2,3)])]),
     "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
+mod = LLVM.module_from_assembly(ctx, asm)
+res = LLVM.module_to_ast(ctx, mod)
+=#
+
+#=
+ast, asm = test_ast(Int64,
+                Ast.ConstAdd(false, false,
+                    Ast.ConstPtrToInt(
+                        Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)), 
+                        Int64),
+                    Ast.ConstInt(64, 2)),
+                 "global i64 add (i64 ptrtoint (i32* @1 to i64), i64 2)")
+
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
 =#

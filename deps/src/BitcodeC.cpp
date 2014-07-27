@@ -11,17 +11,6 @@ using namespace llvm;
 
 extern "C" {
 
-LLVMModuleRef LLVM_General_ParseBitcode(
-	LLVMContextRef c,
-	LLVMMemoryBufferRef mb, 
-	char **error
-) {
-	std::string msg;
-	Module *m = ParseBitcodeFile(unwrap(mb), *unwrap(c), &msg);
-	if (m == 0) *error = strdup(msg.c_str());
-	return wrap(m);
-}
-
 void LLVM_General_WriteBitcode(LLVMModuleRef m, raw_ostream &os) {
 	WriteBitcodeToFile(unwrap(m), os);
 }

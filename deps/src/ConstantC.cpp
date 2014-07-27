@@ -53,14 +53,14 @@ LLVMValueRef LLVM_General_ConstBinaryOperator(unsigned opcode, LLVMValueRef o0, 
 	return wrap(ConstantExpr::get(opcode, unwrap<Constant>(o0), unwrap<Constant>(o1)));
 }
 
-#define CASE_CODE(op)																										\
+#define CASE_CODE(op) \
 LLVMValueRef LLVM_General_Const ## op(unsigned nsw, unsigned nuw, LLVMValueRef o0, LLVMValueRef o1) { \
 	return wrap(ConstantExpr::get ## op(unwrap<Constant>(o0), unwrap<Constant>(o1), nuw != 0, nsw != 0)); \
 }
 LLVM_GENERAL_FOR_EACH_OVERFLOWING_BINARY_OPERATOR(CASE_CODE)
 #undef CASE_CODE
 
-#define CASE_CODE(op)																										\
+#define CASE_CODE(op) \
 LLVMValueRef LLVM_General_Const ## op(unsigned isExact, LLVMValueRef o0, LLVMValueRef o1) {	\
 	return wrap(ConstantExpr::get ## op(unwrap<Constant>(o0), unwrap<Constant>(o1), isExact != 0));	\
 }

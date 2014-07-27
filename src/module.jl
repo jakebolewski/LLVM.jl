@@ -105,6 +105,11 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
 
     elseif subclass_id == ValueSubclass.undef_value
         return Ast.ConstUndef(typ)
+    
+    elseif subclass_id == ValueSubclass.const_expr
+        @show FFI.get_const_cpp_opcode(cptr)
+        error("HEKLEJL")
+
     elseif subclass_id == ValueSubclass.const_fp
         nbits, fmt = typ.nbits, typ.fmt
         words = zeros(Uint64, div((nbits - 1), 64) + 1)
@@ -118,6 +123,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         else
             error("unimplemented constant floating point type")
         end
+
     elseif subclass_id == ValueSubclass.const_struct
         name = isa(typ, Ast.NamedTypeRef) ? typ.val : nothing 
         p = FFI.is_packed_struct(ftyp)
@@ -127,6 +133,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
         end
         return Ast.ConstStruct(name, p, vals) 
+
     elseif subclass_id == ValueSubclass.const_data_array
         @assert isa(typ, Ast.ArrayType)
         vals = Array(Ast.Constant, typ.len)
@@ -134,6 +141,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             vals[i] = decode_llvm(st, FFI.get_const_data_seq_elem_as_const(cptr, i))
         end
         return Ast.ConstArray(typ, vals)
+
     elseif subclass_id == ValueSubclass.const_array
         @assert isa(typ, Ast.ArrayType)
         vals = Array(Ast.Constant, typ.len)
@@ -141,6 +149,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
         end 
         return Ast.ConstArray(typ, vals)
+
     else
         error("unimplemented subclassid : $subclass_id")
     end
@@ -183,10 +192,10 @@ EncodeState(ctx::Context) = begin
                      Dict{Ast.LLVMName, GlobalValuePtr}(),
                      Dict{Ast.LLVMName, BasicBlockPtr}(),
                      Dict{Ast.MetadataNodeID, MDNodePtr}())
-    finalizer(es, (s) -> begin
-        if !isnull(s.builder)
-            FFI.dispose_builder(s.builder)
-            s.builder = BuilderPtr(C_NULL)
+    finalizer(es, (st) -> begin
+        if !isnull(st.builder)
+            FFI.dispose_builder(st.builder)
+            st.builder = BuilderPtr(C_NULL)
         end
     end)
     return es
@@ -315,17 +324,20 @@ with_sm_diagnostic(f::Function) = begin
 end
 
 module_from_bitcode(ctx::Context, buf::MemoryBufferPtr) = begin
-    msg = Ptr{Uint8}[0]
-    mod = FFI.parse_llvm_bitcode(ctx, buf, msg)
-    if isnull(mod)
+    modptr = [ModulePtr(C_NULL)]
+    outmsg = Ptr{Uint8}[0]
+    status = FFI.parse_llvm_bitcode(ctx, buf, modptr, outmsg)
+    mod = modptr[1]
+    if status != zero(LLVMBool)
         if msg[1] != C_NULL
             err = bytestring(msg[1])
             c_free(msg[1])
             throw(ErrorException(err))
-        else 
-            error("unknown error with `module_from_bitcode`")
+        else
+            error("unknown error with `parse_llvm_bitcode`")
         end
     end
+    @assert !isnull(mod)
     return mod
 end
 
@@ -398,14 +410,14 @@ end
 
 # write LLVM Assembly from a 'ModulePtr' to a file
 write_assembly_file(path::String, mod::ModulePtr) = begin
-    FFI.with_file_raw_ostream(path, false, false) do ostream
+    FFI.with_file_raw_ostream(path, false) do ostream
         FFI.write_llvm_assembly(ostream, mod)
     end
 end 
 
 # write LLVM Bitcode from a 'ModulePtr' to a file
 write_bitcode_file(path::String, mod::ModulePtr) = begin
-    FFI.with_file_raw_ostream(path, false, false) do ostream 
+    FFI.with_file_raw_ostream(path, false) do ostream 
         FFI.write_llvm_bitcode(ostream, mod)
     end
 end 

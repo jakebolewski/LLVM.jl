@@ -49,28 +49,28 @@ LLVM_GENERAL_FOR_EACH_FAST_MATH_FLAG(ENUM_CASE)
 
 extern "C" {
 
-#define ENUM_CASE(Op)																										\
-LLVMValueRef LLVM_General_Build ## Op(																	\
-	LLVMBuilderRef b,																											\
-	LLVMBool nsw,																													\
-	LLVMBool nuw,																													\
-	LLVMValueRef o0,																											\
-	LLVMValueRef o1,																											\
-	const char *s																													\
-) {																																			\
+#define ENUM_CASE(Op) \
+LLVMValueRef LLVM_General_Build ## Op( \
+	LLVMBuilderRef b,\
+	LLVMBool nsw,\
+	LLVMBool nuw,\
+	LLVMValueRef o0,\
+	LLVMValueRef o1,\
+	const char *s \
+) { \
 	return wrap(unwrap(b)->Create ## Op(unwrap(o0), unwrap(o1), s, nuw, nsw)); \
 }
 LLVM_GENERAL_FOR_EACH_OVERFLOWING_BINARY_OPERATOR(ENUM_CASE)
 #undef ENUM_CASE
 
-#define ENUM_CASE(Op)																										\
-LLVMValueRef LLVM_General_Build ## Op(																	\
-	LLVMBuilderRef b,																											\
-	LLVMBool exact,																												\
-	LLVMValueRef o0,																											\
-	LLVMValueRef o1,																											\
-	const char *s																													\
-) {																																			\
+#define ENUM_CASE(Op)\
+LLVMValueRef LLVM_General_Build ## Op(\
+	LLVMBuilderRef b,\
+	LLVMBool exact,\
+	LLVMValueRef o0,\
+	LLVMValueRef o1,\
+	const char *s \
+) { \
 	return wrap(unwrap(b)->Create ## Op(unwrap(o0), unwrap(o1), s, exact)); \
 }
 LLVM_GENERAL_FOR_EACH_POSSIBLY_EXACT_BINARY_OPERATOR(ENUM_CASE)
@@ -131,8 +131,7 @@ LLVMValueRef LLVM_General_BuildAtomicCmpXchg(
 	const char *name
 ) {
 	AtomicCmpXchgInst *a = unwrap(b)->CreateAtomicCmpXchg(
-		unwrap(ptr), unwrap(cmp), unwrap(n), unwrap(lao), unwrap(lss)
-	);
+		unwrap(ptr), unwrap(cmp), unwrap(n), unwrap(lao), unwrap(lao), unwrap(lss));
 	a->setVolatile(v);
 	a->setName(name);
 	return wrap(a);

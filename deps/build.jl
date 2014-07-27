@@ -21,13 +21,13 @@ const LIBNAME = "libllvmgeneral.$(BinDeps.shlib_ext)"
 mv(LIBNAME, joinpath(USRLIBDIR, LIBNAME))
 
 # Generate ext.jl with hardcoded paths to llvm libraries
-#LLVM_CONFIG = "$JULIA_ROOT/usr/bin/llvm-config"
-LLVM_CONFIG = "llvm-config"
+LLVM_CONFIG = "$JULIA_ROOT/usr/bin/llvm-config"
 LLVMVER = readchomp(`$LLVM_CONFIG --version`)
+LLVMVERNUM = rstrip(LLVMVER, collect("svn"))
 
-lv = VersionNumber(map(int, split(LLVMVER, ['.', '-']))...)
-if lv.major != 3 || lv.minor < 4
-    error("Only llvm versions 3.4 or 3.5 are supported")
+lv = VersionNumber(map(int, split(LLVMVERNUM, ['.', '-']))...)
+if lv.major != 3 || lv.minor != 5
+    error("Only llvm version 3.5 is supported")
 end 
 
 LLVM_GENRAL_DIR = Pkg.dir("LLVM", "deps", "usr", "lib")

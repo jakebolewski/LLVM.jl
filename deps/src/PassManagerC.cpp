@@ -7,6 +7,7 @@
 #include "llvm-c/Transforms/PassManagerBuilder.h"
 #include "llvm/Target/TargetLibraryInfo.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/CodeGen/Passes.h"
 
 #include "llvm/PassManager.h"
 #include "llvm-c/Target.h"
@@ -43,15 +44,15 @@ inline TargetLibraryInfo *unwrap(LLVMTargetLibraryInfoRef P) {
 }
 
 // Taken from llvm/lib/Transforms/IPO/PassManagerBuilder.cpp
-inline PassManagerBuilder *unwrap(LLVMPassManagerBuilderRef P) {
-    return reinterpret_cast<PassManagerBuilder*>(P);
+inline PassManagerBase *unwrap(LLVMPassManagerBuilderRef P) {
+    return reinterpret_cast<PassManagerBase*>(P);
 }
 }
 
 extern "C" {
 
 void LLVM_General_AddDataLayoutPass(LLVMPassManagerRef PM, const char *dl) {
-	unwrap(PM)->add(new DataLayout(dl));
+	unwrap(PM)->add(new DataLayoutPass(DataLayout(dl)));
 }
 
 void LLVM_General_LLVMAddAnalysisPasses(LLVMTargetMachineRef T, LLVMPassManagerRef PM) {
@@ -99,7 +100,7 @@ void LLVM_General_AddLoopStrengthReducePass(LLVMPassManagerRef PM) {
 }
 
 void LLVM_General_AddLowerInvokePass(LLVMPassManagerRef PM, LLVMTargetMachineRef T, LLVMBool expensiveEH) {
-	unwrap(PM)->add(createLowerInvokePass(unwrap(T), expensiveEH));
+	unwrap(PM)->add(createLowerInvokePass());
 }
 	
 void LLVM_General_AddSROAPass(LLVMPassManagerRef PM, LLVMBool RequiresDomTree) {
@@ -185,15 +186,9 @@ void LLVM_General_AddAddressSanitizerFunctionPass(
 	char *blacklistFile,
 	LLVMBool zeroBaseShadow
 ) {
+	//TODO: options
 	unwrap(PM)->add(
-		createAddressSanitizerFunctionPass(
-			checkInitOrder,
-			checkUseAfterReturn,
-			checkLifetime,
-			blacklistFile,
-			zeroBaseShadow
-		)
-	);
+		createAddressSanitizerFunctionPass());
 }
 
 void LLVM_General_AddAddressSanitizerModulePass(
@@ -202,7 +197,8 @@ void LLVM_General_AddAddressSanitizerModulePass(
 	const char *blacklistFile,
 	bool zeroBaseShadow
 ) {
-	unwrap(PM)->add(createAddressSanitizerModulePass(checkInitOrder, blacklistFile, zeroBaseShadow));
+	//TODO: options
+	unwrap(PM)->add(createAddressSanitizerModulePass(blacklistFile));
 }
 
 void LLVM_General_AddMemorySanitizerPass(
@@ -210,14 +206,15 @@ void LLVM_General_AddMemorySanitizerPass(
 	LLVMBool trackOrigins,
 	const char *blacklistFile
 ) {
-	unwrap(PM)->add(createMemorySanitizerPass(trackOrigins, blacklistFile));
+	unwrap(PM)->add(createMemorySanitizerPass(trackOrigins));
 }
 
 void LLVM_General_AddThreadSanitizerPass(
 	LLVMPassManagerRef PM,
 	const char *blacklistFile
 ) {
-	unwrap(PM)->add(createThreadSanitizerPass(blacklistFile));
+	//TODO: options
+	unwrap(PM)->add(createThreadSanitizerPass());
 }
 
 void LLVM_General_AddBoundsCheckingPass(LLVMPassManagerRef PM) {
@@ -245,6 +242,7 @@ void LLVM_General_AddDebugExistingIRPass(LLVMPassManagerRef PM) {
 	unwrap(PM)->add(createDebugIRPass());
 }
 
+/** TODO
 void
 LLVM_General_PassManagerBuilderSetLibraryInfo(
     LLVMPassManagerBuilderRef PMB,
@@ -252,7 +250,7 @@ LLVM_General_PassManagerBuilderSetLibraryInfo(
 ) {
   // The PassManager frees the TargetLibraryInfo when done,
   // but we also free our ref, so give it a new copy.
-  unwrap(PMB)->LibraryInfo = new TargetLibraryInfo(*unwrap(l));
+  unwrap(PMB)->TargetLibraryInfo = new TargetLibraryInfo(*unwrap(l));
 }
-
+**/
 }

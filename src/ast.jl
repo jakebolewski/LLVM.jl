@@ -184,7 +184,8 @@ immutable IntType <: LLVMType
     nbits::Int
 end
 
-Base.convert{T<:Integer}(::Type{LLVMType}, ::Type{T}) = IntType(sizeof(T) * 8)
+Base.convert{T<:Integer}(::Type{LLVMType}, ::Type{T}) = 
+    IntType(sizeof(T) * 8)
 
 Base.convert(::Type{LLVMType}, ::Type{BigInt}) = 
     error("cannot convert BigInt to LLVMType")
@@ -194,6 +195,8 @@ immutable PtrType <: LLVMType
     typ::LLVMType
     addrspace::AddrSpace
 end
+
+Base.convert{T}(::Type{LLVMType}, ::Type{Ptr{T}}) = PtrType(T, AddrSpace(0))
 
 # http://llvm.org/docs/LangRef.html#floating-point-types
 immutable FloatType <: LLVMType
@@ -358,7 +361,7 @@ end
 
 immutable ConstGlobalRef <: Constant
     typ::LLVMType
-    name::Name
+    name::LLVMName
 end
 
 type ConstGetElementPtr <: Constant

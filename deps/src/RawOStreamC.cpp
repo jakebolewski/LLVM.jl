@@ -1,25 +1,21 @@
 #include "llvm-c/Core.h"
 
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
-using sys::fs::F_Excl;
-using sys::fs::F_None;
-using sys::fs::F_Binary;
 
 extern "C" {
 
 LLVMBool LLVM_General_WithFileRawOStream(
 	const char *filename,
 	LLVMBool excl,
-	LLVMBool binary,
 	const char *&error,
 	void (&callback)(raw_ostream &ostream, const void *data),
     const void *data
 ) {
 	std::string e;
-	raw_fd_ostream os(filename, e, (excl ? F_Excl : F_None) |
-				       (binary ? F_Binary : F_None));
+	raw_fd_ostream os(filename, e, excl ? sys::fs::F_Excl : sys::fs::F_None);
 	if (!e.empty()) {
 		error = strdup(e.c_str());
 		return false;

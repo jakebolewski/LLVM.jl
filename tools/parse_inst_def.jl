@@ -1,4 +1,4 @@
-OUTNAME = "cppinstr.jl"
+OUTNAME = "instrdef.jl"
 
 instdef = open(readall, ARGS[1])
 
@@ -47,11 +47,11 @@ const InstructionDefs = [
 
 writeinst(typ, t) = write(io, "\t$(t[1]) => InstructionDef{:$typ}($t...),\n")
 
-map(t -> writeinst(:Term, t), TERMS)
+map(t -> writeinst(:Term,   t), TERMS)
 map(t -> writeinst(:Binary, t), BINARY)
 map(t -> writeinst(:Memory, t), MEMORY)
-map(t -> writeinst(:Cast, t), CAST)
-map(t -> writeinst(:Other,t), OTHER)
+map(t -> writeinst(:Cast,   t), CAST)
+map(t -> writeinst(:Other,  t), OTHER)
 
 write(io, "]\n")
 close(io)

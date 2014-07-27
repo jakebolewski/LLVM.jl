@@ -106,9 +106,14 @@ get_fast_math_flags(val) =
 #------------------------------------------------------------------------------
 # BitCode 
 #------------------------------------------------------------------------------
-parse_llvm_bitcode(ctx, membuf, str) =
-    ccall((:LLVM_General_ParseBitcode, libllvmgeneral), ModulePtr,
-          (ContextPtr, MemoryBufferPtr, Ptr{Ptr{Uint8}}), ctx, membuf, str)
+parse_llvm_bitcode(ctx, membuf, modptr, out) = 
+    ccall((:LLVMParseBicodeInContext, libllvm), LLVMBool,
+          (ContextPtr, MemoryBufferPtr, Ptr{ModulePtr}, Ptr{Ptr{Uint8}}),
+          ctx, membuf, modptr, out)
+
+write_llvm_bitcode_file(mod, path) =
+    ccall((:LLVMWriteBitcodeToFile, libllvm), LLVMBool,
+          (ModulePtr, Ptr{Uint8}), mod, path)
 
 write_llvm_bitcode(io, mod) = 
     ccall((:LLVM_General_WriteBitcode, libllvmgeneral), Void,
@@ -389,7 +394,7 @@ constant_inbounds_getelem_ptr(cnst, idxs) = begin
           (ConstPtr, Ptr{ConstPtr}, Cuint), cnst, idxs, n)
 end
 
-get_constant_cpp_opcode(cnst) = 
+get_const_cpp_opcode(cnst) = 
     ccall((:LLVM_General_GetConstCPPOpcode, libllvmgeneral), CPPOpcode, (ConstPtr,), cnst)
 
 get_constant_icmp_predicate(cnst) =
@@ -1244,7 +1249,7 @@ function ostreamcb(ptr::Ptr{Void}, data::Ptr{Void})
 end
 const c_ostream_cb = cfunction(ostreamcb, Void, (Ptr{Void}, Ptr{Void}))
 
-with_file_raw_ostream(f::Function, filename, excl::Bool, binary::Bool) = begin
+with_file_raw_ostream(f::Function, filename, excl::Bool) = begin
     payload = (f, IOBuffer())
     errptr  = Ptr{Uint8}[0]
     status  = zero(LLVMBool) 
