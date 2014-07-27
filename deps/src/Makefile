@@ -38,7 +38,6 @@ OBJS += AssemblyC.cpp.o \
 	ExecutionEngineC.cpp.o \
 	FunctionC.cpp.o \
 	GlobalAliasC.cpp.o \
-	GlobalValueC.cpp.o \
 	InlineAssemblyC.cpp.o \
 	InstructionC.cpp.o \
 	MetadataC.cpp.o \

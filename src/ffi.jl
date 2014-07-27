@@ -718,12 +718,11 @@ set_alignment!(gval, bytes) =
     ccall((:LLVMSetAlignment, libllvm), Void, (GlobalValuePtr, Uint32), gval, bytes)
 
 has_unnamed_addr(gval) =
-    bool(ccall((:LLVM_General_HasUnnamedAddr, libllvmgeneral), LLVMBool, 
+    bool(ccall((:LLVMHasUnnamedAddr, libllvm), LLVMBool, 
                (GlobalValuePtr,), gval))
 
-# todo this is exposed by the C API in LLVM 3.5
 set_unnamed_addr!(val, hasunamed::Bool) =
-    ccall((:LLVM_General_SetUnnamedAddr, libllvmgeneral), Void,
+    ccall((:LLVMSetUnnamedAddr, libllvm), Void,
           (ValuePtr, LLVMBool), val, hasunamed)
 
 #------------------------------------------------------------------------------
