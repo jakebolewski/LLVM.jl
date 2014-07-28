@@ -15,7 +15,9 @@ isnull(h::LLVMPtr) = is(h.ptr, zero(Ptr{Void}))
 
 Base.convert(::Type{Ptr{Void}}, ptr::LLVMPtr) = ptr.ptr
 Base.(:(==))(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr === p2.ptr
-    
+Base.isequal(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr == p2.ptr
+Base.hash(p::LLVMPtr) = hash(p.ptr)
+
 Base.show(io::IO, ptr::LLVMPtr) = begin
     addr = "0x$(hex(unsigned(convert(Ptr{Void}, ptr)), WORD_SIZE>>2))"
     print(io, "LLVM.$(typeof(ptr))(@$addr)")

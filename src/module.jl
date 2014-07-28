@@ -3,28 +3,40 @@
 #------------------------------------------------------------------------------
 type DecodeState
     ctx::Context
-    global_var_num::Dict{GlobalValuePtr, Int}
-    local_var_num::Dict{ValuePtr,Int}
+    global_var_num::OrderedDict{GlobalValuePtr, Int}
+    local_var_num::OrderedDict{ValuePtr,Int}
     local_name_counter::Int
-    named_type_num::Dict{TypePtr,Int}
+    named_type_num::OrderedDict{TypePtr,Int}
     types_to_define::Vector{TypePtr}
 end
-
 DecodeState(ctx::Context) = 
     DecodeState(ctx,
-                Dict{GlobalValuePtr,Int}(),
-                Dict{ValuePtr,Int}(),
+                OrderedDict{GlobalValuePtr,Int}(),
+                OrderedDict{ValuePtr,Int}(),
                 -1,
-                Dict{TypePtr,Int}(),
+                OrderedDict{TypePtr,Int}(),
                 TypePtr[]) 
+
+add_global!(st::DecodeState, val::GlobalValuePtr) = begin
+    if haskey(st.global_var_num, val) || !isempty(FFI.get_value_name(val))
+        return
+    end
+    n = length(st.global_var_num)
+    st.global_var_num[val] = n
+    return 
+end
 
 get_global_name(st::DecodeState, val::GlobalValuePtr) = begin
     name = FFI.get_value_name(val)
     if !isempty(name)
-        return Ast.Ast(name)
+        return Ast.Name(name)
     end
-    n = length(st.global_var_num)
-    st.global_var_num[val] = n
+    if haskey(st.global_var_num, val)
+        n = st.global_var_num[val]
+    else
+        n = length(st.global_var_num)
+        st.global_var_num[val] = n
+    end 
     return Ast.UnName(n)
 end
 
@@ -33,9 +45,13 @@ get_local_name(st::DecodeState, val::ValuePtr) = begin
     if !isempty(name)
         return Ast.Ast(name)
     end
-    n = length(st.local_var_num)
-    st.local_var_num[val] = n
-    st.local_name_counter = n+1
+    if haskey(st.local_var_num, val)
+        n = st.local_var_num[val]
+    else
+        n = length(st.local_var_num)
+        st.local_var_num[val] = n
+        st.local_name_counter = n+1
+    end
     return Ast.UnName(n)
 end
 
@@ -95,7 +111,16 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
 
     subclass_id = FFI.get_value_subclass_id(cptr)
     
-    if subclass_id == ValueSubclass.const_int
+    if subclass_id == ValueSubclass.undef_value
+        return Ast.ConstUndef(typ)
+    
+    elseif subclass_id == ValueSubclass.global_variable
+        #name = get_global_name(st, FFI.isa_global_value(cptr))
+        n = st.global_var_num[FFI.isa_global_value(cptr)]
+        name = Ast.UnName(n)
+        return Ast.ConstGlobalRef(typ, name) 
+
+    elseif subclass_id == ValueSubclass.const_int
         words  = FFI.get_constant_int_words(cptr)
         nwords = length(words) 
         # this is wrong but it gets the tests to pass 
@@ -103,15 +128,29 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
              nwords == 2 ? zero(Uint128) : zero(BigInt)
         n = foldr((b, a) -> (a << 64) | b, v0, words)
         return Ast.ConstInt(typ.nbits, n)
-
-    elseif subclass_id == ValueSubclass.undef_value
-        return Ast.ConstUndef(typ)
-    
+   
     elseif subclass_id == ValueSubclass.const_expr
-        @show op = FFI.get_const_cpp_opcode(cptr)
-        @show FFI.get_const_opcode(cptr)
-        @show InstructionDefs[op]
-        error("HEKLEJL")
+        opcode = FFI.get_const_opcode(cptr)
+        # const add, sub, mul, shl
+        if opcode == 8 || opcode == 10 || opcode == 12 || opcode == 20 
+            nsw = FFI.is_exact(cptr)
+            nuw = FFI.no_unsigned_wrap(cptr)
+            op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
+            op2 = decode_llvm(st, FFI.get_constant_operand(cptr, 2))
+            if opcode == 8 
+                return Ast.ConstAdd(nsw, nuw, op1, op2)
+            elseif opcode == 10 
+                return Ast.ConstSub(nsw, nuw, op1, op2)
+            elseif opcode == 12 
+                return Ast.ConstMul(nsw, nuw, op1, op2)
+            elseif opcode == 20 
+                return Ast.ConstShl(nsw, nuw, op1, op2)
+            end
+        elseif opcode == 39 # const pointer to int
+            op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
+            return Ast.ConstPtrToInt(op1, typ)
+        end
+        error("unimplemented constant expr opcode $opcode")
 
     elseif subclass_id == ValueSubclass.const_fp
         nbits, fmt = typ.nbits, typ.fmt
@@ -133,7 +172,8 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         n = FFI.get_num_operands(cptr)
         vals = Array(Ast.Constant, n)
         for i = 1:n
-            vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
+            vals[i] = decode_llvm(st,
+                FFI.get_constant_operand(cptr, i))
         end
         return Ast.ConstStruct(name, p, vals) 
 
@@ -141,7 +181,8 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         @assert isa(typ, Ast.ArrayType)
         vals = Array(Ast.Constant, typ.len)
         for i = 1:typ.len
-            vals[i] = decode_llvm(st, FFI.get_const_data_seq_elem_as_const(cptr, i))
+            vals[i] = decode_llvm(st, 
+                FFI.get_const_data_seq_elem_as_const(cptr, i))
         end
         return Ast.ConstArray(typ, vals)
 
@@ -180,21 +221,21 @@ end
 type EncodeState
     ctx::Context
     builder::BuilderPtr
-    named_types::Dict{Ast.LLVMName,TypePtr}
-    locals::Dict{Ast.LLVMName, LocalVal}
-    globals::Dict{Ast.LLVMName,GlobalValuePtr}
-    blocks::Dict{Ast.LLVMName,BasicBlockPtr}
-    mdnodes::Dict{Ast.MetadataNodeID, MDNodePtr}
+    named_types::OrderedDict{Ast.LLVMName,TypePtr}
+    locals::OrderedDict{Ast.LLVMName, ValuePtr}
+    globals::OrderedDict{Ast.LLVMName,GlobalValuePtr}
+    blocks::OrderedDict{Ast.LLVMName,BasicBlockPtr}
+    mdnodes::OrderedDict{Ast.MetadataNodeID, MDNodePtr}
 end
 
 EncodeState(ctx::Context) = begin
     bldr = FFI.create_builder_in_ctx(ctx)
     es = EncodeState(ctx, bldr,
-                     Dict{Ast.LLVMName, TypePtr}(),
-                     Dict{Ast.LLVMName, ValuePtr}(),
-                     Dict{Ast.LLVMName, GlobalValuePtr}(),
-                     Dict{Ast.LLVMName, BasicBlockPtr}(),
-                     Dict{Ast.MetadataNodeID, MDNodePtr}())
+                     OrderedDict{Ast.LLVMName, TypePtr}(),
+                     OrderedDict{Ast.LLVMName, ValuePtr}(),
+                     OrderedDict{Ast.LLVMName, GlobalValuePtr}(),
+                     OrderedDict{Ast.LLVMName, BasicBlockPtr}(),
+                     OrderedDict{Ast.MetadataNodeID, MDNodePtr}())
     finalizer(es, (st) -> begin
         if !isnull(st.builder)
             FFI.dispose_builder(st.builder)
@@ -204,11 +245,20 @@ EncodeState(ctx::Context) = begin
     return es
 end 
 
-get_named_type(st::EncodeState, name::String)   = get_named_type(st, Ast.Name(name))
-get_named_type(st::EncodeState, name::Ast.Name) = get_named_type(st, name)
+get_named_type(st::EncodeState, name::String) = get_named_type(st, Ast.Name(name))
+get_named_type(st::EncodeState, name::Ast.LLVMName) = st.named_types[name]
 
-get_local_type(st::EncodeState, name::String)   = get_local_type(st, Ast.Name(name))
-get_local_type(st::EncodeState, name::Ast.Name) = es.locals[name]
+get_local_type(st::EncodeState, name::String) = get_local_type(st, Ast.Name(name))
+get_local_type(st::EncodeState, name::Ast.LLVMName) = st.locals[name]
+
+get_global(st::EncodeState, name::String) = get_global(st, Ast.Name(name))
+get_global(st::EncodeState, name::Ast.LLVMName) = st.globals[name]
+
+define_global!(st::EncodeState, name::String, ptr::GlobalValuePtr) =
+    st.globals[Ast.Name(name)] = ptr
+
+define_global!(st::EncodeState, name::Ast.LLVMName, ptr::GlobalValuePtr) = 
+    st.globals[name] = ptr
 
 encode_llvm(es::EncodeState, s::String) = begin
     N = length(s)
@@ -315,6 +365,23 @@ encode_llvm(st::EncodeState, val::Ast.ConstFloat) = begin
         error("unimplemented")
     end
     FFI.const_float_arbitrary_precision(st.ctx, nbits, words, fpsem)
+end
+
+encode_llvm(st::EncodeState, ref::Ast.ConstGlobalRef) =
+    get_global(st, ref.name)
+
+encode_llvm(st::EncodeState, inst::Ast.ConstPtrToInt) = begin
+    val = encode_llvm(st, inst.op)
+    typ = encode_llvm(st, inst.typ)
+    return FFI.const_ptrtoint(val, typ)
+end
+
+encode_llvm(st::EncodeState, inst::Ast.ConstAdd) = begin
+    lhs = encode_llvm(st, inst.op1)
+    rhs = encode_llvm(st, inst.op2)
+    inst.nsw && return FFI.const_nswadd(lhs, rhs)
+    inst.nuw && return FFI.const_nuwadd(lhs, rhs)
+    return FFI.const_add(lhs, rhs)
 end
 
 with_sm_diagnostic(f::Function) = begin
@@ -436,6 +503,7 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
     mod_ptr = FFI.create_module_with_name_in_ctx(mod.name, st.ctx)
     mod.layout !== nothing && FFI.set_datalayout!(mod_ptr, mod.layout) 
     mod.target !== nothing && FFI.set_target_triple!(mod_ptr, mod.target)
+    # phase 1 define global definitions 
     for def in mod.defs
         if isa(def, Ast.TypeDefinition)
             error("unimplemented")
@@ -445,32 +513,47 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
             error("unimplemented")
         elseif isa(def, Ast.GlobalDefinition)
             local g = def.val 
-            local gval_ptr::GlobalValuePtr
+            local gptr::GlobalValuePtr
             if isa(g, Ast.GlobalVar)
-                gval_ptr = FFI.add_global_in_addr_space!(
+                gptr = FFI.add_global_in_addr_space!(
                                         mod_ptr,
                                         encode_llvm(st, g.typ), 
                                         encode_llvm(st, g.name),
                                         encode_llvm(st, g.addrspace))
-                FFI.set_thread_local!(gval_ptr, g.threadlocal)
-                FFI.set_unnamed_addr!(gval_ptr, g.unamedaddr)
-                FFI.set_global_constant!(gval_ptr, g.isconst)
-                if g.init !== nothing
-                    FFI.set_initializer!(gval_ptr, encode_llvm(st, g.init))
-                end
-                if g.section !== nothing
-                    FFI.set_section!(gval_ptr, g.section)
-                end
-                FFI.set_alignment!(gval_ptr, g.alignment)
-                # add global to encoding state 
-                st.globals[g.name] = gval_ptr 
+                # add global to encoding state
+                define_global!(st, g.name, gptr)
             elseif isa(g, Ast.GlobalAlias)
-                error("unimplemented")
+                typ  = encode_llvm(st, g.typ)
+                gptr = FFI.just_add_alias(mod_ptr,
+                                          encode_llvm(st, g.typ),
+                                          encode_llvm(st, g.name))
             elseif isa(g, Ast.Function)
                 error("unimplemented")
             end
-            FFI.set_linkage!(gval_ptr, encode_llvm(st, g.linkage))
-            FFI.set_visibility!(gval_ptr, encode_llvm(st, g.visibility))
+        end
+    end
+    for def in mod.defs
+        if isa(def, Ast.GlobalDefinition)
+            local g = def.val 
+            local gptr = get_global(st, g.name) 
+            if isa(g, Ast.GlobalVar)
+                FFI.set_thread_local!(gptr, g.threadlocal)
+                FFI.set_unnamed_addr!(gptr, g.unamedaddr)
+                FFI.set_global_constant!(gptr, g.isconst)
+                if g.init !== nothing
+                    FFI.set_initializer!(gptr, encode_llvm(st, g.init))
+                end
+                if g.section !== nothing
+                    FFI.set_section!(gptr, g.section)
+                end
+                FFI.set_alignment!(gptr, g.alignment)
+            elseif isa(g, Ast.GlobalAlias)
+                FFI.set_aliasee(gptr, encode_llvm(st, g.aliasee))
+            elseif isa(g, Ast.Function)
+                error("unimplemented")
+            end
+            FFI.set_linkage!(gptr, encode_llvm(st, g.linkage))
+            FFI.set_visibility!(gptr, encode_llvm(st, g.visibility))
         end
     end
     return mod_ptr
@@ -485,7 +568,21 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
     moduleid   = FFI.get_module_id(mod_ptr)
     datalayout = get_datalayout(mod_ptr)
     triple     = get_target_triple(mod_ptr)
-
+    
+    # Phase 1; add toplevel global definitions 
+    add_toplevel(g) = add_global!(st, g)
+    
+    map(add_toplevel, FFI.list(GlobalValuePtr, 
+                               FFI.get_first_global(mod_ptr),
+                               FFI.get_next_global))
+    map(add_toplevel, FFI.list(GlobalAliasPtr,
+                               FFI.get_first_alias(mod_ptr),
+                               FFI.get_next_alias))
+    map(add_toplevel, FFI.list(FunctionPtr,
+                               FFI.get_first_func(mod_ptr),
+                               FFI.get_next_func))
+    
+    # Phase 2; lift c++ definitions to Ast nodes 
     local defs = Ast.Definition[] 
     for g in FFI.list(GlobalValuePtr,
                       FFI.get_first_global(mod_ptr), 

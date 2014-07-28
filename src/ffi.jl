@@ -88,16 +88,16 @@ get_next_instruction(instr) =
 #------------------------------------------------------------------------------
 # Binary Operator
 #------------------------------------------------------------------------------
-isbinaryop(val) =
+is_binary_op(val) =
     ccall((:LLVMIsABinaryOperator, libllvm), BinaryOpPtr, (ValuePtr,), val)
 
 no_signed_wrap(val) =
     bool(ccall((:LLVM_General_HasNoSignedWrap, libllvmgeneral), LLVMBool, (ValuePtr,), val))
 
-no_unsigned_wrap(bal) =
+no_unsigned_wrap(val) =
     bool(ccall((:LLVM_General_HasNoUnsignedWrap, libllvmgeneral), LLVMBool, (ValuePtr,), val))
 
-isexact(val) =
+is_exact(val) =
     bool(ccall((:LLVM_General_IsExact, libllvmgeneral), LLVMBool, (ValuePtr,), val))
 
 get_fast_math_flags(val) =
@@ -496,7 +496,7 @@ for llvm_inst in [:LLVMConstNeg,
     fname = symbol(string("const_", iname))
     @eval begin
         $fname(val) = 
-            ccall((:($llvm_inst), libllvm), ConstPtr, (ConstPtr,), val) 
+            ccall(($(string(llvm_inst)), libllvm), ConstPtr, (ConstPtr,), val) 
     end
 end
 
@@ -530,7 +530,8 @@ for llvm_inst in [:LLVMConstAdd,
     fname = symbol(string("const_", iname))
     @eval begin
         $fname(lhs, rhs) = 
-            ccall((:($llvm_inst), libllvm), ConstPtr, (ConstPtr, ConstPtr), lhs, rhs) 
+            ccall(($(string(llvm_inst)), libllvm), ConstPtr, 
+                  (ConstPtr, ConstPtr), lhs, rhs) 
     end
 end
 
@@ -585,7 +586,8 @@ for llvm_inst in [:LLVMConstTrunc,
     fname = symbol(string("const_", iname))
     @eval begin
         $fname(val, typ) = 
-            ccall((:($llvm_inst), libllvm), ConstPtr, (ConstPtr, TypePtr), val, typ) 
+            ccall(($(string(llvm_inst)), libllvm), ConstPtr,
+                  (ConstPtr, TypePtr), val, typ) 
     end
 end
 

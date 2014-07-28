@@ -57,7 +57,7 @@ test_ast(typ, val, str) = begin
     return (ast, astr)
 end
 
-#= 
+
 facts("test constants") do
     context("integer") do
         ast, asm = test_ast(Uint32,
@@ -159,7 +159,7 @@ facts("test constants") do
         check_result(ast, asm)
     end 
 end
-=#
+
 #=
 ast, asm = test_ast(
     Ast.ArrayType(Ast.StructType(false, [Uint32]), 3),
@@ -168,8 +168,6 @@ ast, asm = test_ast(
     "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
-=#
-
 ast, asm = test_ast(Int64,
                 Ast.ConstAdd(false, false,
                     Ast.ConstPtrToInt(
@@ -180,3 +178,4 @@ ast, asm = test_ast(Int64,
 
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
+=#

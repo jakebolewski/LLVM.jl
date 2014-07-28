@@ -1,5 +1,7 @@
 module LLVM
 
+import DataStructures: OrderedDict
+
 export Ast
 
 include(joinpath("..", "deps", "ext.jl"))
