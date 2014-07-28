@@ -157,7 +157,18 @@ facts("test constants") do
                         Ast.ConstInt(64, 2)),
                      "global i64 add (i64 ptrtoint (i32* @1 to i64), i64 2)")
         check_result(ast, asm)
-    end 
+    end
+    
+    context("binop / cast signed/unsigned wrap") do
+        ast, asm = test_ast(Int64,
+                    Ast.ConstAdd(true, false,
+                        Ast.ConstPtrToInt(
+                            Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)),
+                            Int64),
+                        int64(2)),
+                    "global i64 add nsw (i64 ptrtoint (i32* @1 to i64), i64 2)")
+        check_result(ast, asm)
+    end
 end
 
 #=
@@ -168,14 +179,14 @@ ast, asm = test_ast(
     "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
-ast, asm = test_ast(Int64,
-                Ast.ConstAdd(false, false,
-                    Ast.ConstPtrToInt(
-                        Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)), 
-                        Int64),
-                    Ast.ConstInt(64, 2)),
-                 "global i64 add (i64 ptrtoint (i32* @1 to i64), i64 2)")
+=#
 
+ast, asm = test_ast(Int64,
+                    Ast.ConstAdd(true, false,
+                        Ast.ConstPtrToInt(
+                            Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)),
+                            Int64),
+                        int64(2)),
+                    "global i64 add nsw (i64 ptrtoint (i32* @1 to i64), i64 2)")
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
-=#

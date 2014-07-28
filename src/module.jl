@@ -133,7 +133,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         opcode = FFI.get_const_opcode(cptr)
         # const add, sub, mul, shl
         if opcode == 8 || opcode == 10 || opcode == 12 || opcode == 20 
-            nsw = FFI.is_exact(cptr)
+            nsw = FFI.no_signed_wrap(cptr)
             nuw = FFI.no_unsigned_wrap(cptr)
             op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             op2 = decode_llvm(st, FFI.get_constant_operand(cptr, 2))
@@ -534,8 +534,8 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
     end
     for def in mod.defs
         if isa(def, Ast.GlobalDefinition)
-            local g = def.val 
-            local gptr = get_global(st, g.name) 
+            local g = def.val
+            local gptr = get_global(st, g.name)
             if isa(g, Ast.GlobalVar)
                 FFI.set_thread_local!(gptr, g.threadlocal)
                 FFI.set_unnamed_addr!(gptr, g.unamedaddr)
@@ -571,7 +571,6 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
     
     # Phase 1; add toplevel global definitions 
     add_toplevel(g) = add_global!(st, g)
-    
     map(add_toplevel, FFI.list(GlobalValuePtr, 
                                FFI.get_first_global(mod_ptr),
                                FFI.get_next_global))
