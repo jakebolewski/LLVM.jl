@@ -146,6 +146,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             elseif opcode == 20 
                 return Ast.ConstShl(nsw, nuw, op1, op2)
             end
+
         elseif opcode == 29 # const gep
             inbounds = FFI.get_inbounds(cptr)
             addr = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
@@ -158,6 +159,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         elseif opcode == 39 # const pointer to int
             op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             return Ast.ConstPtrToInt(op1, typ)
+
         elseif opcode == 42 # const icmp instr
             pred = FFI.get_icmp_predicate(cptr)
             op1  = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
@@ -202,7 +204,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             vals[i] = decode_llvm(st, 
                 FFI.get_const_data_seq_elem_as_const(cptr, i))
         end
-        return Ast.ConstArray(typ, vals)
+        return Ast.ConstArray(typ.typ, vals)
 
     elseif subclass_id == ValueSubclass.const_array
         @assert isa(typ, Ast.ArrayType)
@@ -210,7 +212,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         for i = 1:typ.len
             vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
         end 
-        return Ast.ConstArray(typ, vals)
+        return Ast.ConstArray(typ.typ, vals)
 
     else
         error("unimplemented subclassid : $subclass_id")
@@ -340,11 +342,10 @@ encode_llvm(st::EncodeState, struct::Ast.ConstStruct) = begin
     cptrs = encode_llvm(st, struct.vals)::Vector{ConstPtr}
     if is(struct.name, nothing)
         return FFI.const_struct_in_ctx(st.ctx, cptrs, struct.packed)
-    else
-        # lookup named type from encoding state
-        typ = st.named_types[struct.name]::TypePtr
-        return FFI.const_named_struct(typ, cptrs)
-    end 
+    end
+    # lookup named type from encoding state
+    typ = st.named_types[struct.name]::TypePtr
+    return FFI.const_named_struct(typ, cptrs)
 end
 
 encode_llvm(st::EncodeState, atyp::Ast.ArrayType) = 

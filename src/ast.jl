@@ -870,7 +870,7 @@ end
 
 #TODO: get rid of this
 Base.convert(::Type{Visibility}, enum::Integer) = 
-    enum == 0 ? DefaultVisibility() : error("udfjkldjfl")
+    enum == 0 ? DefaultVisibility() : error("unhandled visibility")
 
 GlobalVar(;name=error("global variable name not defined"),
            linkage=Linkage{:External}(),

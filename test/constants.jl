@@ -11,6 +11,13 @@ function check_result(ast, asm)
         mod2 = LLVM.module_from_ast(ctx, ast)
 
         # check that we can correctly serialize both to assembly / bitcode
+        gold = LLVM.module_to_assembly(ctx, mod1)
+        test = LLVM.module_to_assembly(ctx, mod2)
+    
+        Base.print_with_color(:yellow, gold)
+        Base.print_with_color(gold == test ? :green : :red, test)
+        Base.print_with_color(:blue, "-"^80 * "\n")
+
         @fact LLVM.module_to_assembly(ctx, mod1) => LLVM.module_to_assembly(ctx, mod2)
         @fact check_bitcode(LLVM.module_to_bitcode(ctx, mod1), 
                             LLVM.module_to_bitcode(ctx, mod2)) => true
@@ -58,8 +65,8 @@ test_ast(typ, val, str) = begin
     return (ast, astr)
 end
 
-
 facts("test constants") do
+    
     context("integer") do
         ast, asm = test_ast(Uint32,
                             one(Uint32),
@@ -111,7 +118,6 @@ facts("test constants") do
                             "global double 1.000000e+00")
         check_result(ast, asm)
     end
-
     # crazy float types are missing...
     
     context("struct") do
@@ -125,25 +131,22 @@ facts("test constants") do
     end 
 
     context("dataarray") do
-        ast, asm = test_ast(Ast.ArrayType(Uint32, 3),
-                            Ast.ConstArray(Ast.ArrayType(Uint32, 3),
+        ast, asm = test_ast(Ast.ArrayType(Int32, 3),
+                            Ast.ConstArray(Int32, 
                                 [Ast.ConstInt(32, uint32(i)) for i in (1,2,1)]),
                             "global [3 x i32] [i32 1, i32 2, i32 1]")
         check_result(ast, asm)
     end
     
-    #=
     context("array") do
         ast, asm = test_ast(
             Ast.ArrayType(Ast.StructType(false, [Uint32]), 3),
             Ast.ConstArray(Ast.StructType(false, [Uint32]),
-                [Ast.ConstStruct(nothing, false, [Ast.ConstInt(32, i)]) 
-                 for i in (1,2,3)]),
-        "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
+                [Ast.ConstStruct(nothing, false, [Ast.ConstInt(32, i)]) for i in (1,2,3)]),
+        "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 3 }]")
         check_result(ast, asm)
     end
-    =#
-
+    
     context("undef") do
         ast, asm = test_ast(Int32, Ast.ConstUndef(Int32), "global i32 undef")
         check_result(ast, asm)
@@ -190,23 +193,3 @@ facts("test constants") do
         check_result(ast, asm)
     end
 end
-
-#=
-ast, asm = test_ast(
-    Ast.ArrayType(Ast.StructType(false, [Uint32]), 3),
-    Ast.ConstArray(Ast.StructType(false, [Uint32]),
-        [Ast.ConstStruct(nothing, false, [Ast.ConstInt(32, i) for i=(1,2,3)])]),
-    "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
-mod = LLVM.module_from_assembly(ctx, asm)
-res = LLVM.module_to_ast(ctx, mod)
-
-ast, asm = test_ast(Int64,
-                    Ast.ConstAdd(true, false,
-                        Ast.ConstPtrToInt(
-                            Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)),
-                            Int64),
-                        int64(2)),
-                    "global i64 add nsw (i64 ptrtoint (i32* @1 to i64), i64 2)")
-mod = LLVM.module_from_assembly(ctx, asm)
-res = LLVM.module_to_ast(ctx, mod)
-=#
