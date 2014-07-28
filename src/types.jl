@@ -178,6 +178,9 @@ end
 Base.convert(::Type{ValuePtr}, ptr::InstructionPtr) = ValuePtr(ptr.ptr)
 Base.convert(::Type{UserPtr},  ptr::InstructionPtr)  = UserPtr(ptr.ptr)
 
+#TODO: temp hack, we should have a constant instruction ptr
+Base.convert(::Type{InstructionPtr}, ptr::ConstPtr) = InstructionPtr(ptr.ptr)
+
 immutable BinaryOpPtr <: LLVMPtr
     ptr::Ptr{Void}
 end

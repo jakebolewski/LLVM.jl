@@ -146,6 +146,15 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             elseif opcode == 20 
                 return Ast.ConstShl(nsw, nuw, op1, op2)
             end
+        elseif opcode == 29 # const gep
+            inbounds = FFI.get_inbounds(cptr)
+            addr = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
+            idxs = Array(Ast.Constant, nops-1)
+            for i = 2:nops
+                idxs[i-1] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
+            end 
+            return Ast.ConstGetElementPtr(inbounds, addr, idxs)
+
         elseif opcode == 39 # const pointer to int
             op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             return Ast.ConstPtrToInt(op1, typ)
@@ -300,6 +309,12 @@ encode_llvm(st::EncodeState, typ::Ast.FloatType) = begin
     end
 end 
 
+encode_llvm(st::EncodeState, ptr::Ast.PtrType) = begin
+    typ  = encode_llvm(st, ptr.typ)
+    addr = encode_llvm(st, ptr.addrspace)
+    return FFI.ptr_type(typ, addr)
+end
+
 encode_llvm(st::EncodeState, typs::Vector{Ast.LLVMType}) = begin
     tptrs = TypePtr[]
     for ty in typs
@@ -383,6 +398,13 @@ encode_llvm(st::EncodeState, inst::Ast.ConstPtrToInt) = begin
     val = encode_llvm(st, inst.op)
     typ = encode_llvm(st, inst.typ)
     return FFI.const_ptrtoint(val, typ)
+end
+
+encode_llvm(st::EncodeState, inst::Ast.ConstGetElementPtr) = begin
+    addr = encode_llvm(st, inst.addr)
+    idxs = encode_llvm(st, inst.idxs)
+    return inst.inbounds ? FFI.const_inbounds_getelem_ptr(addr, idxs) :
+                           FFI.const_getelem_ptr(addr, idxs)
 end
 
 encode_llvm(st::EncodeState, inst::Ast.ConstAdd) = begin

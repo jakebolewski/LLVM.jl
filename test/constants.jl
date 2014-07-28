@@ -180,6 +180,15 @@ facts("test constants") do
                             "global i1 icmp sge (i32* @1, i32* @2)")
         check_result(ast, asm) 
     end
+
+    context("getelementptr") do
+        ast, asm = test_ast(Ptr{Int32},
+                            Ast.ConstGetElementPtr(true,
+                                Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)),
+                                [Ast.ConstInt(64, 27)]),
+                        "global i32* getelementptr inbounds (i32* @1, i64 27)")
+        check_result(ast, asm)
+    end
 end
 
 #=
