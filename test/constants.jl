@@ -1,5 +1,6 @@
 using FactCheck 
-using LLVM
+import LLVM
+import LLVM: Ast, IntPred
 
 check_bitcode(buf1, buf2) = buf1.data == buf2.data
 
@@ -169,6 +170,16 @@ facts("test constants") do
                     "global i64 add nsw (i64 ptrtoint (i32* @1 to i64), i64 2)")
         check_result(ast, asm)
     end
+
+    context("icmp") do
+        ast, asm = test_ast(Ast.IntType(1),
+                            Ast.ConstICmp(
+                                Ast.SGE(), # todo this sucks
+                                Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(1)),
+                                Ast.ConstGlobalRef(Ptr{Int32}, Ast.UnName(2))),
+                            "global i1 icmp sge (i32* @1, i32* @2)")
+        check_result(ast, asm) 
+    end
 end
 
 #=
@@ -179,7 +190,6 @@ ast, asm = test_ast(
     "global [3 x { i32 }] [{ i32 } { i32 1 }, { i32 } { i32 2 }, { i32 } { i32 1 }]")
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
-=#
 
 ast, asm = test_ast(Int64,
                     Ast.ConstAdd(true, false,
@@ -190,3 +200,4 @@ ast, asm = test_ast(Int64,
                     "global i64 add nsw (i64 ptrtoint (i32* @1 to i64), i64 2)")
 mod = LLVM.module_from_assembly(ctx, asm)
 res = LLVM.module_to_ast(ctx, mod)
+=#

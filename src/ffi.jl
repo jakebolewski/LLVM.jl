@@ -1015,7 +1015,13 @@ get_instr_def_opcode(inst) =
           (InstructionPtr,), inst)
 
 get_icmp_predicate(inst) =
-    ccall((:LLVMGetICmpPredicate,  libllvm), ICmpPredicate, (InstructionPtr,), inst)
+    ccall((:LLVMGetICmpPredicate,  libllvm), ICmpPredicate, 
+          (InstructionPtr,), inst)
+
+#TODO: const instruction pointer that can cast to an instruction pointer
+get_icmp_predicate(inst::ConstPtr) =
+    ccall((:LLVMGetICmpPredicate, libllvm), ICmpPredicate,
+          (ConstPtr,), inst)
 
 get_fcmp_predicate(inst) =
     ccall((:LLVM_General_GetFCmpPredicate, libllvmgeneral), FCmpPredicate,

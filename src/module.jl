@@ -149,6 +149,15 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         elseif opcode == 39 # const pointer to int
             op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             return Ast.ConstPtrToInt(op1, typ)
+        elseif opcode == 42 # const icmp instr
+            pred = FFI.get_icmp_predicate(cptr)
+            op1  = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
+            op2  = decode_llvm(st, FFI.get_constant_operand(cptr, 2))
+            if pred == IntPred.sge
+                return Ast.ConstICmp(Ast.SGE(), op1, op2)
+            else
+                error("unimplemented icmp pred $pred")
+            end
         end
         error("unimplemented constant expr opcode $opcode")
 
@@ -382,6 +391,17 @@ encode_llvm(st::EncodeState, inst::Ast.ConstAdd) = begin
     inst.nsw && return FFI.const_nswadd(lhs, rhs)
     inst.nuw && return FFI.const_nuwadd(lhs, rhs)
     return FFI.const_add(lhs, rhs)
+end
+
+encode_llvm(st::EncodeState, inst::Ast.ConstICmp) = begin
+    if isa(inst.pred, Ast.SGE)
+        pred = IntPred.sge
+    else
+        error("unimplemented predicate for const icmp")
+    end
+    lhs = encode_llvm(st, inst.op1)
+    rhs = encode_llvm(st, inst.op2)
+    return FFI.const_icmp(pred, lhs, rhs)
 end
 
 with_sm_diagnostic(f::Function) = begin

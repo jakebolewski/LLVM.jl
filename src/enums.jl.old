@@ -181,7 +181,7 @@ baremodule CallCovEnum
     x86_fastcall = 65
 end
 
-baremodule IntPredicateEnum
+baremodule IntPredicate
     eq  = 32    # equal
     ne  = 33    # not equal
     ugt = 34    # unsigned greater than 
@@ -194,7 +194,7 @@ baremodule IntPredicateEnum
     sle = 41    # signed less than or equal
 end
 
-baremodule RealPredicateEnum
+baremodule RealPred
     predicate_false =  0  # Always false (always folded)
     oeq =  1    # True if ordered and equal
     ogt =  2    # True if ordered and greater than     

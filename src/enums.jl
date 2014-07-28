@@ -129,3 +129,35 @@ baremodule Opcodes
     const resume = 58
     const landingpad = 59
 end
+
+baremodule IntPred
+    const eq  = 32 # equal
+    const ne  = 33 # not equal
+    const ugt = 34 # unsigned greater than 
+    const uge = 35 # unsigned greater than or equal
+    const ult = 36 # unsinged less than
+    const ule = 37 # unsigned less than or equal
+    const sgt = 38 # signed greater than
+    const sge = 39 # signed greater than or equal
+    const slt = 40 # signed less than
+    const sle = 41 # signed less than or equal
+end
+
+baremodule RealPred
+    const predicate_false =  0  # Always false (always folded)
+    const oeq =  1    # True if ordered and equal
+    const ogt =  2    # True if ordered and greater than     
+    const oge =  3    # True if ordered and greater than or equal
+    const olt =  4    # True if ordered and less than
+    const ole =  5    # True if ordered and less than or equal
+    const one =  6    # True if ordered and operands are unequal
+    const ord =  7    # True if ordered (no nans)
+    const uno =  8    # True if unordered: isnan(X) | isnan(Y)
+    const ueq =  9    # True if unordered or equal
+    const ugt = 10    # True if unordered or greater than
+    const uge = 11    # True if unordered, greater than, or equal
+    const ult = 12    # True if unordered or less than
+    const ule = 13    # True if unordered, less than, or equal
+    const une = 14    # True if unordered or not equal
+    const predicate_true = 15 # Always true (never folded)
+end
