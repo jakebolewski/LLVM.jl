@@ -132,22 +132,18 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
     elseif subclass_id == ValueSubclass.const_expr
         opcode = FFI.get_const_opcode(cptr)
         # const add, sub, mul, shl
-        if opcode == 8 || opcode == 10 || opcode == 12 || opcode == 20 
+        if (opcode == Opcode.add || opcode == Opcode.sub || 
+            opcode == Opcode.mul || opcode == Opcode.shl) 
             nsw = FFI.no_signed_wrap(cptr)
             nuw = FFI.no_unsigned_wrap(cptr)
             op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             op2 = decode_llvm(st, FFI.get_constant_operand(cptr, 2))
-            if opcode == 8 
-                return Ast.ConstAdd(nsw, nuw, op1, op2)
-            elseif opcode == 10 
-                return Ast.ConstSub(nsw, nuw, op1, op2)
-            elseif opcode == 12 
-                return Ast.ConstMul(nsw, nuw, op1, op2)
-            elseif opcode == 20 
-                return Ast.ConstShl(nsw, nuw, op1, op2)
-            end
+            opcode == Opcode.add && return Ast.ConstAdd(nsw, nuw, op1, op2)
+            opcode == Opcode.sub && return Ast.ConstSub(nsw, nuw, op1, op2)
+            opcode == Opcode.mul && return Ast.ConstMul(nsw, nuw, op1, op2)
+            opcode == Opcode.shl && return Ast.ConstShl(nsw, nuw, op1, op2)
 
-        elseif opcode == 29 # const gep
+        elseif opcode == Opcode.get_element_ptr
             inbounds = FFI.get_inbounds(cptr)
             addr = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             idxs = Array(Ast.Constant, nops-1)
@@ -156,19 +152,16 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             end 
             return Ast.ConstGetElementPtr(inbounds, addr, idxs)
 
-        elseif opcode == 39 # const pointer to int
+        elseif opcode == Opcode.ptrtoint
             op1 = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             return Ast.ConstPtrToInt(op1, typ)
 
-        elseif opcode == 42 # const icmp instr
+        elseif opcode == Opcode.icmp
             pred = FFI.get_icmp_predicate(cptr)
             op1  = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             op2  = decode_llvm(st, FFI.get_constant_operand(cptr, 2))
-            if pred == IntPred.sge
-                return Ast.ConstICmp(Ast.SGE(), op1, op2)
-            else
-                error("unimplemented icmp pred $pred")
-            end
+            pred == IntPred.sge && return Ast.ConstICmp(Ast.SGE(), op1, op2)
+            error("unimplemented icmp pred $pred")
         end
         error("unimplemented constant expr opcode $opcode")
 

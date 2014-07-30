@@ -53,7 +53,7 @@ baremodule ValueSubclass
     const instruction = 22
 end
 
-baremodule Opcodes
+baremodule Opcode
     # Terminator instructions
     const ret = 1
     const br = 2

@@ -1,6 +1,6 @@
 module FFI
 
-import ..libllvm, ..libllvmgeneral, ..Opcodes
+import ..libllvm, ..libllvmgeneral, ..Opcode
 using ..Types
 
 typealias TargetOptionFlag Cint
