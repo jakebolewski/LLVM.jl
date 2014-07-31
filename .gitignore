@@ -25,3 +25,6 @@ ext.jl
 
 # quick and dirty test files
 test*.jl
+
+# ignore old files
+*.old
