@@ -160,8 +160,8 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
             pred = FFI.get_icmp_predicate(cptr)
             op1  = decode_llvm(st, FFI.get_constant_operand(cptr, 1))
             op2  = decode_llvm(st, FFI.get_constant_operand(cptr, 2))
-            pred == IntPred.sge && return Ast.ConstICmp(Ast.SGE(), op1, op2)
-            error("unimplemented icmp pred $pred")
+            ipred = Ast.int_cmp_pred_map[pred]
+            return Ast.ConstICmp(ipred, op1, op2)
         end
         error("unimplemented constant expr opcode $opcode")
 
@@ -534,20 +534,20 @@ get_target_triple(ptr::ModulePtr) =
 get_datalayout(ptr::ModulePtr) =
     (s = FFI.get_datalayout(ptr); isempty(s) ? nothing : parse_datalayout(s))
 
-module_from_ast(ctx::Context, mod::Ast.Module) = begin
+module_from_ast(ctx::Context, mod::Ast.Mod) = begin
     st = EncodeState(ctx)
     mod_ptr = FFI.create_module_with_name_in_ctx(mod.name, st.ctx)
     mod.layout !== nothing && FFI.set_datalayout!(mod_ptr, mod.layout) 
     mod.target !== nothing && FFI.set_target_triple!(mod_ptr, mod.target)
     # phase 1 define global definitions 
     for def in mod.defs
-        if isa(def, Ast.TypeDefinition)
+        if isa(def, Ast.TypeDef)
             error("unimplemented")
-        elseif isa(def, Ast.MetadataNodeDefinition)
+        elseif isa(def, Ast.MetadataNodeDef)
             error("unimplemented")
-        elseif isa(def, Ast.InlineAssembly)
+        elseif isa(def, Ast.ModInlineAsm)
             error("unimplemented")
-        elseif isa(def, Ast.GlobalDefinition)
+        elseif isa(def, Ast.GlobalDef)
             local g = def.val 
             local gptr::GlobalValuePtr
             if isa(g, Ast.GlobalVar)
@@ -569,7 +569,7 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
         end
     end
     for def in mod.defs
-        if isa(def, Ast.GlobalDefinition)
+        if isa(def, Ast.GlobalDef)
             local g = def.val
             local gptr = get_global(st, g.name)
             if isa(g, Ast.GlobalVar)
@@ -595,7 +595,7 @@ module_from_ast(ctx::Context, mod::Ast.Module) = begin
     return mod_ptr
 end
 
-module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
+function module_to_ast(ctx::Context, mod_ptr::ModulePtr)
     # lift c++ module to Ast.Module 
     @assert ctx.handle == FFI.get_module_ctx(mod_ptr)
 
@@ -636,7 +636,7 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
                             !isnull(init) ? decode_llvm(st, init) : nothing, 
                             FFI.get_section(g),
                             FFI.get_alignment(g))
-        push!(defs, Ast.GlobalDefinition(var))
+        push!(defs, Ast.GlobalDef(var))
     end
     for a in FFI.list(GlobalAliasPtr,
                       FFI.get_first_alias(mod_ptr),
@@ -666,5 +666,5 @@ module_to_ast(ctx::Context, mod_ptr::ModulePtr) = begin
     # named metadata nodes
     # metadata definitions
 
-    return Ast.Module(moduleid, datalayout, triple, defs)
+    return Ast.Mod(moduleid, datalayout, triple, defs)
 end

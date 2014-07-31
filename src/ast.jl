@@ -1,5 +1,7 @@
 module Ast
 
+import ..IntPred
+
 using ..OrderedDict
 
 abstract LLVMAstNode 
@@ -37,11 +39,11 @@ end
 # -----------------------------------------------------------------------------
 # Parameter Attributes 
 # -----------------------------------------------------------------------------
-abstract ParamAttribute <: LLVMAstNode
+abstract ParamAttr <: LLVMAstNode
 
 for typ in [:SignExt, :InReg, :SRet, :NoAlias, :ByVal, :NoCapture, :Nest]
     @eval begin
-        immutable $typ <: ParamAttribute
+        immutable $typ <: ParamAttr
         end
     end
 end
@@ -49,13 +51,13 @@ end
 # -----------------------------------------------------------------------------
 # Function Attributes 
 # -----------------------------------------------------------------------------
-abstract FuncAttribute <: LLVMAstNode
+abstract FuncAttr <: LLVMAstNode
 
-immutable Alignment <: FuncAttribute
+immutable Alignment <: FuncAttr
     val::Int
 end
 
-immutable StackAlignment <: FuncAttribute
+immutable StackAlignment <: FuncAttr
     val::Int
 end
 
@@ -64,7 +66,7 @@ for typ in [:NoReturn, :NoUnwind, :ReadNone, :ReadOnly, :NoInline,
             :NoRedZone, :NoImplicitFloat, :Naked, :InlineHint, :ReturnsTwice, 
             :UWTable, :NonLazyBind]
 @eval begin
-        immutable $typ <: FuncAttribute 
+        immutable $typ <: FuncAttr
         end
     end
 end 
@@ -163,6 +165,19 @@ end
 # http://llvm.org/docs/LangRef.html#icmp-instruction
 typealias IntCmpPredicate Union(EQ, NE, UGT, UGE, ULT, ULE, SGT, SGE, SLT, SLE)
 
+const int_cmp_pred_map = (Int=>IntCmpPredicate)[
+    IntPred.eq  => EQ(),
+    IntPred.ne  => NE(), 
+    IntPred.ugt => UGT(), 
+    IntPred.uge => UGE(), 
+    IntPred.ult => ULT(), 
+    IntPred.ule => ULE(), 
+    IntPred.sgt => SGT(), 
+    IntPred.sge => SGE(),
+    IntPred.slt => SLT(), 
+    IntPred.sle => SLE(),
+]
+
 # http://llvm.org/docs/LangRef.html#fcmp-instruction 
 typealias FloatCmpPredicate Union(False, OEQ, OGT, OGE, OLT, OLE, ONE, ORD, 
                                   UNO, UEQ, UGT, UGE, ULT, ULE, UNE, True)
@@ -209,7 +224,7 @@ Base.convert(::Type{LLVMType}, ::Type{Float32}) = FloatType(32, IEEE())
 Base.convert(::Type{LLVMType}, ::Type{Float64}) = FloatType(64, IEEE())
 
 # http://llvm.org/docs/LangRef.html#function-type
-immutable FunctionType <: LLVMType
+immutable FuncType <: LLVMType
     restyp::LLVMType
     argtyps::Vector{LLVMType}
     varargs::Bool
@@ -265,7 +280,8 @@ end
 # Operand 
 # ----------------------------------------------------------------------------- 
 # an 'Operand' is roughly an argument to a 'LLVM.Ast.Instruction' 
-abstract Operand <: LLVMAstNode
+abstract Operand  <: LLVMAstNode
+abstract Constant <: LLVMAstNode
 
 # 'MetadataNodeId' is a unique number for identifying a metadata node
 immutable MetadataNodeID
@@ -290,7 +306,7 @@ type LocalRef <: Operand
 end 
 
 type ConstOperand <: Operand 
-    val::ConstOperand
+    val::Constant
 end 
 
 type MetadataStrOperand <: Operand
@@ -309,8 +325,6 @@ typealias CallableOperand Union(Operand, InlineAssembly)
 # http://llvm.org/docs/LangRef.html#constants
 # http://llvm.org/docs/LangRef.html#constant-expressions 
 # -----------------------------------------------------------------------------
-abstract Constant <: LLVMAstNode
-
 typealias MaybeConstant Union(Nothing, Constant)
 
 immutable ConstInt <: Constant
@@ -473,6 +487,7 @@ type Ret <: Terminator
     op::Union(Nothing, Operand)
     metadata::InstructionMetadata
 end
+Ret(op) = Ret(op, InstructionMetadata[])
 
 type CondBr <: Terminator
     cond::Operand
@@ -501,10 +516,10 @@ end
 
 type Invoke <: Terminator
     convention::CallingConvention
-    retattrs::Vector{ParamAttribute}
+    retattrs::Vector{ParamAttr}
     func::CallableOperand
-    args::Vector{(Operand, Vector{ParamAttribute})}
-    funcattrs::Vector{FuncAttribute}
+    args::Vector{(Operand, Vector{ParamAttr})}
+    funcattrs::Vector{FuncAttr}
     retdest::Name
     exdest::Name
     metadata::InstructionMetadata
@@ -750,15 +765,15 @@ type Phi <: Instruction
     metadata::InstructionMetadata
 end 
 
-typealias CallArgs Vector{(Operand, Vector{ParamAttribute})}
+typealias CallArgs Vector{(Operand, Vector{ParamAttr})}
 
 type Call <: Instruction
     istailcall::Bool
     callcov::CallingConvention 
-    retattrs::Vector{ParamAttribute}
+    retattrs::Vector{ParamAttr}
     func::CallableOperand
     args::CallArgs
-    funcattrs::Vector{FuncAttribute}
+    funcattrs::Vector{FuncAttr}
     metadata::InstructionMetadata
 end 
 
@@ -838,11 +853,12 @@ end
 abstract LLVMGlobal <: LLVMAstNode
 
 # Parameters for 'LLVM.Ast.Function'
-type Parameter <: LLVMAstNode
+type Param <: LLVMAstNode
     typ::LLVMType
     name::LLVMName
-    attrs::Vector{ParamAttribute}
+    attrs::Vector{ParamAttr}
 end
+Param(typ, name) = Param(typ, name, ParamAttr[])
 
 # LLVM code in a function is a sequence of 'LLVM.Ast.BasicBlocks' with a
 # label, some instructions, and terminator
@@ -852,6 +868,7 @@ type BasicBlock <: LLVMAstNode
     insts::Vector{Instruction}
     term::Terminator 
 end
+BasicBlock(name::LLVMName, term::Terminator) = BasicBlock(name, Instruction[], term)
 
 # http://llvm.org/docs/LangRef.html#global-variables
 type GlobalVar <: LLVMGlobal
@@ -906,21 +923,47 @@ type GlobalAlias <: LLVMGlobal
 end
 
 # http://llvm.org/docs/LangRef.html#functions
-type Function <: LLVMGlobal
+type Func <: LLVMGlobal
     linkage::LLVMLinkage 
     visibility::Visibility
     callingcov::CallingConvention
-    retattrs::Vector{ParamAttribute}
+    retattrs::Vector{ParamAttr}
     rettyp::LLVMType
     name::LLVMName
-    params::Vector{Parameter}
-    varargs::Bool
-    funcattrs::Vector{FuncAttribute}
+    params::Vector{Param}
+    vaargs::Bool
+    attrs::Vector{FuncAttr}
     section::Union(Nothing, String)
     alignment::Int
     gcname::Union(Nothing, String)
     blocks::Vector{BasicBlock}
 end 
+
+Func(;linkage=Linkage{:External}(),
+      visibility=DefaultVisibility(),
+      callingcov=CConvention(),
+      retattrs=ParamAttr[],
+      rettyp=error("return type not defined"),
+      name=error("function name not defined"),
+      params=Param[],
+      vaargs=false,
+      attrs=FuncAttr[],
+      section=nothing,
+      alignment=0,
+      gcname=nothing,
+      blocks=BasicBlock[]) = Func(linkage,
+                                  visibility,
+                                  callingcov,
+                                  retattrs,
+                                  rettyp,
+                                  name,
+                                  params,
+                                  vaargs,
+                                  attrs,
+                                  section,
+                                  alignment,
+                                  gcname,
+                                  blocks)
 
 # -----------------------------------------------------------------------------
 # DataLayout
@@ -990,30 +1033,30 @@ DataLayout(;endianness=nothing,
 # Anything that can be at the top level of a 'Module'
 abstract Definition <: LLVMAstNode
 
-type GlobalDefinition <: Definition
+type GlobalDef <: Definition
     val::LLVMGlobal
 end
 
-type TypeDefinition <: Definition
+type TypeDef <: Definition
     name::LLVMName
     typs::Vector{LLVMType}
 end
 
-type MetadataNodeDefinition <: Definition
+type MetadataNodeDef <: Definition
     id::MetadataNodeID
     ops::Vector{Operand}
 end
 
-type NamedMetadataDefinition <: Definition
+type NamedMetadataDef <: Definition
     name::String
     ids::Vector{MetadataNodeID}
 end
 
-type ModuleInlineAsm <: Definition
+type ModInlineAsm <: Definition
     source::String
 end
 
-type Module <: LLVMAstNode
+type Mod <: LLVMAstNode
     name::String
     layout::Union(Nothing, DataLayout)
     target::Union(Nothing, String)

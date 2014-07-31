@@ -48,12 +48,12 @@ end
 const ctx = LLVM.global_ctx()
 
 test_ast(typ, val, str) = begin
-    ast = Ast.Module("<string>", nothing, nothing, [
-            Ast.GlobalDefinition(
+    ast = Ast.Mod("<string>", nothing, nothing, [
+            Ast.GlobalDef(
                 Ast.GlobalVar(name=Ast.UnName(0), typ=typ, init=val)),
-            Ast.GlobalDefinition(
+            Ast.GlobalDef(
                 Ast.GlobalVar(name=Ast.UnName(1), typ=Uint32, init=nothing)),
-            Ast.GlobalDefinition(
+            Ast.GlobalDef(
                 Ast.GlobalVar(name=Ast.UnName(2), typ=Uint32, init=nothing)),
         ])
     astr ="""; ModuleID = '<string>'

@@ -6,11 +6,11 @@ export Ast
 
 include(joinpath("..", "deps", "ext.jl"))
 
+include("enums.jl")
 include("ast.jl")
 include("datalayout.jl")
 
 include("types.jl")
-include("enums.jl")
 include("ffi.jl")
 
 using .Types
