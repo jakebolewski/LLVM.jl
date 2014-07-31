@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 type DecodeState
     ctx::Context
-    global_var_num::OrderedDict{GlobalValuePtr, Int}
+    global_var_num::OrderedDict{GlobalPtr, Int}
     local_var_num::OrderedDict{ValuePtr,Int}
     local_name_counter::Int
     named_type_num::OrderedDict{TypePtr,Int}
@@ -11,7 +11,7 @@ type DecodeState
 end
 DecodeState(ctx::Context) = 
     DecodeState(ctx,
-                OrderedDict{GlobalValuePtr,Int}(),
+                OrderedDict{GlobalPtr,Int}(),
                 OrderedDict{ValuePtr,Int}(),
                 -1,
                 OrderedDict{TypePtr,Int}(),
@@ -131,7 +131,7 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
    
     elseif subclass_id == ValueSubclass.const_expr
         opcode = FFI.get_const_opcode(cptr)
-        # const add, sub, mul, shl
+        
         if (opcode == Opcode.add || opcode == Opcode.sub || 
             opcode == Opcode.mul || opcode == Opcode.shl) 
             nsw = FFI.no_signed_wrap(cptr)
@@ -224,31 +224,33 @@ decode_llvm(st::DecodeState, buf::MemoryBufferPtr) = decode_llvm(buf)
 abstract LocalVal
 
 immutable ForwardVal <: LocalVal
-    val::ValuePtr
+    val::Types.LLVMPtr
 end 
 
 immutable DefinedVal <: LocalVal
-    val::ValuePtr
+    val::Types.LLVMPtr
 end 
 
 type EncodeState
     ctx::Context
     builder::BuilderPtr
     named_types::OrderedDict{Ast.LLVMName,TypePtr}
-    locals::OrderedDict{Ast.LLVMName, ValuePtr}
-    globals::OrderedDict{Ast.LLVMName,GlobalValuePtr}
-    blocks::OrderedDict{Ast.LLVMName,BasicBlockPtr}
+    locals::OrderedDict{Ast.LLVMName, LocalVal}
+    globals::OrderedDict{Ast.LLVMName, GlobalPtr} 
+    allblocks::OrderedDict{(Ast.LLVMName, Ast.LLVMName), BasicBlockPtr}
+    blocks::OrderedDict{Ast.LLVMName, BasicBlockPtr}
     mdnodes::OrderedDict{Ast.MetadataNodeID, MDNodePtr}
 end
 
 EncodeState(ctx::Context) = begin
     bldr = FFI.create_builder_in_ctx(ctx)
     es = EncodeState(ctx, bldr,
-                     OrderedDict{Ast.LLVMName, TypePtr}(),
-                     OrderedDict{Ast.LLVMName, ValuePtr}(),
-                     OrderedDict{Ast.LLVMName, GlobalValuePtr}(),
-                     OrderedDict{Ast.LLVMName, BasicBlockPtr}(),
-                     OrderedDict{Ast.MetadataNodeID, MDNodePtr}())
+                     OrderedDict{Ast.LLVMName,TypePtr}(),
+                     OrderedDict{Ast.LLVMName,LocalVal}(),
+                     OrderedDict{Ast.LLVMName,GlobalPtr}(),
+                     OrderedDict{(Ast.LLVMName,Ast.LLVMName), BasicBlockPtr}(),
+                     OrderedDict{Ast.LLVMName,BasicBlockPtr}(),
+                     OrderedDict{Ast.MetadataNodeID,MDNodePtr}())
     finalizer(es, (st) -> begin
         if !isnull(st.builder)
             FFI.dispose_builder(st.builder)
@@ -267,12 +269,48 @@ get_local_type(st::EncodeState, name::Ast.LLVMName) = st.locals[name]
 get_global(st::EncodeState, name::String) = get_global(st, Ast.Name(name))
 get_global(st::EncodeState, name::Ast.LLVMName) = st.globals[name]
 
-define_global!(st::EncodeState, name::String, ptr::GlobalValuePtr) =
-    st.globals[Ast.Name(name)] = ptr
+define_global!(st::EncodeState, name::String, ptr::GlobalPtr) =
+    (st.globals[Ast.Name(name)] = ptr; return)
 
-define_global!(st::EncodeState, name::Ast.LLVMName, ptr::GlobalValuePtr) = 
-    st.globals[name] = ptr
+define_global!(st::EncodeState, name::Ast.LLVMName, ptr::GlobalPtr) = 
+    (st.globals[name] = ptr; return)
 
+define_basic_block!(st::EncodeState, 
+                    fname::Ast.LLVMName,
+                    bname::Ast.LLVMName,
+                    ptr::BasicBlockPtr) = begin
+    st.allblocks[(fname, bname)] = ptr
+    st.blocks[bname] = ptr
+    return
+end
+define_basic_block!(st::EncodeState, fname, bname, ptr) =
+    define_basic_block(st, isa(fname, String) ? Ast.Name(fname) : fname::Ast.LLVMName,
+                           isa(bname, String) ? Ast.Name(bname) : bname::Ast.LLVMName, ptr)
+
+define_local!(st::EncodeState, lname::Ast.Name, ptr) = begin
+    if haskey(st.locals, lname)
+        def = st.locals[lanme]
+        if isa(def, ForwardVal)
+            FFI.replace_all_uses_with(convert(ValuePtr, def.val), ptr)
+        end
+        return
+    end
+    st.locals[lname] = DefinedVal(ptr)
+    return
+end
+
+with_locals(f::Function, st::EncodeState) = begin
+    ol, ob = st.locals, st.blocks
+    try
+        st.locals = copy(st.locals)
+        st.blocks = copy(st.blocks)
+        f(st)
+    finally
+        st.locals = ol
+        st.blocks = ob
+    end
+end
+        
 encode_llvm(es::EncodeState, s::String) = begin
     N = length(s)
     ptr = convert(Ptr{Uint8}, Base.c_malloc(sizeof(Uint8) * N + 1))
@@ -326,6 +364,26 @@ encode_llvm(st::EncodeState, cnsts::Vector{Ast.Constant}) = begin
     return cptrs
 end
 
+encode_llvm(st::EncodeState, attrs::Vector{Ast.FuncAttr}) = begin
+    isempty(attrs) && return uint32(0)
+    bits = uint32(attrs[1])
+    for i = 2:length(attrs)
+        flag = Ast.func_attr_map[attrs[i]]
+        bits &= uint32(flag)
+    end
+    return bits
+end
+
+encode_llvm(st::EncodeState, attrs::Vector{Ast.ParamAttr}) = begin
+    isempty(attrs) && return uint32(0)
+    bits = uint32(attrs[1])
+    for i = 2:length(attrs)
+        flag = Ast.param_attr_map[attrs[i]]
+        bits &= uint32(flag)
+    end
+    return bits
+end
+
 encode_llvm(st::EncodeState, styp::Ast.StructType) = begin
     typs = encode_llvm(st, styp.typs)
     return FFI.struct_type_in_ctx(st.ctx, typs, styp.packed)
@@ -341,8 +399,13 @@ encode_llvm(st::EncodeState, struct::Ast.ConstStruct) = begin
     return FFI.const_named_struct(typ, cptrs)
 end
 
-encode_llvm(st::EncodeState, atyp::Ast.ArrayType) = 
-    FFI.array_type(encode_llvm(st, atyp.typ), atyp.len)
+encode_llvm(st::EncodeState, typ::Ast.ArrayType) = 
+    FFI.array_type(encode_llvm(st, typ.typ), typ.len)
+
+encode_llvm(st::EncodeState, typ::Ast.FuncType) =
+    FFI.func_type(encode_llvm(st, typ.rettyp),
+                  encode_llvm(st, typ.argtyps),
+                  typ.vaargs)
 
 encode_llvm(st::EncodeState, carr::Ast.ConstArray) = 
     FFI.const_array(encode_llvm(st, carr.typ),
@@ -358,6 +421,8 @@ encode_llvm(st::EncodeState, name::Ast.UnName) = ""
 
 encode_llvm(st::EncodeState, ::Ast.Linkage{:External}) = 0
 encode_llvm(st::EncodeState, ::Ast.DefaultVisibility)  = 0
+
+encode_llvm(st::EncodeState, c::Ast.CConvention) = CallingCov.c
 
 encode_llvm(st::EncodeState, val::Ast.ConstInt) = begin
     v, nbits = val.val, val.nbits
@@ -419,6 +484,14 @@ encode_llvm(st::EncodeState, inst::Ast.ConstICmp) = begin
     rhs = encode_llvm(st, inst.op2)
     return FFI.const_icmp(pred, lhs, rhs)
 end
+
+# Encode Operands
+encode_llvm(st::EncodeState, op::Ast.ConstOperand) = encode_llvm(st, op.val)
+
+# Encode Terminators 
+encode_llvm(st::EncodeState, term::Ast.Ret) =
+    is(term.op, nothing) ? FFI.build_ret_void(st.builder) :
+                           FFI.build_ret(st.builder, encode_llvm(st, term.op))
 
 with_sm_diagnostic(f::Function) = begin
     smd = FFI.create_sm_diagnostic()
@@ -563,8 +636,11 @@ module_from_ast(ctx::Context, mod::Ast.Mod) = begin
                 gptr = FFI.just_add_alias(mod_ptr,
                                           encode_llvm(st, g.typ),
                                           encode_llvm(st, g.name))
-            elseif isa(g, Ast.Function)
-                error("unimplemented")
+            elseif isa(g, Ast.Func)
+                ftyp = encode_llvm(st,
+                    Ast.FuncType(g.rettyp, [p.typ for p in g.params], g.vaargs))
+                f = FFI.add_function(mod_ptr, encode_llvm(st, g.name), ftyp)
+                define_global!(st, g.name, f)
             end
         end
     end
@@ -573,6 +649,7 @@ module_from_ast(ctx::Context, mod::Ast.Mod) = begin
             local g = def.val
             local gptr = get_global(st, g.name)
             if isa(g, Ast.GlobalVar)
+                @assert isa(gptr, GlobalValuePtr)
                 FFI.set_thread_local!(gptr, g.threadlocal)
                 FFI.set_unnamed_addr!(gptr, g.unamedaddr)
                 FFI.set_global_constant!(gptr, g.isconst)
@@ -584,9 +661,48 @@ module_from_ast(ctx::Context, mod::Ast.Mod) = begin
                 end
                 FFI.set_alignment!(gptr, g.alignment)
             elseif isa(g, Ast.GlobalAlias)
-                FFI.set_aliasee(gptr, encode_llvm(st, g.aliasee))
-            elseif isa(g, Ast.Function)
-                error("unimplemented")
+                @assert isa(gptr, GlobalAliasPtr)
+                FFI.set_aliasee!(gptr, encode_llvm(st, g.aliasee))
+            elseif isa(g, Ast.Func)
+                @assert isa(gptr, FunctionPtr)
+                FFI.set_func_call_cov!(gptr, encode_llvm(st, g.callingcov))
+                FFI.add_func_ret_attr(gptr, encode_llvm(st, g.retattrs))
+                FFI.add_func_attr!(gptr, encode_llvm(st, g.attrs))
+                if g.section != nothing
+                    FFI.set_section!(gptr, g.section)
+                end
+                if g.alignment != nothing
+                    FFI.set_alignment!(gptr, g.alignment)
+                end
+                if g.gcname != nothing
+                    FFI.set_gc!(gptr, g.gcname)
+                end
+                for blk in g.blocks
+                    b = FFI.append_basicblock_in_ctx(ctx, gptr, encode_llvm(st, blk.name))
+                    define_basic_block!(st, g.name, blk.name, b)
+                end
+                with_locals(st) do st
+                    pptrs = FFI.get_params(gptr)
+                    for p in g.params, pptr in pptrs
+                        define_local!(st, g.name, pptr)
+                        FFI.set_value_name!(pptr, encode_llvm(st, g.name))
+                        if !isempty(p.attrs)
+                            FFI.add_attribute(pptr, encode_llvm(st, g.attrs))
+                        end
+                    end
+                    for b in g.blocks
+                        bptr = st.blocks[b.name]
+                        FFI.position_builder_end(st.builder, bptr)
+                        for inst in b.insts
+                            encode_llvm(st, inst)
+                        end
+                        encode_llvm(st, b.term)
+                    end
+                end
+                # error out if all forward declared locals have not been defined
+                for (k, v) in st.locals
+                    isa(v, ForwardVal) && error("local $k is undefined")
+                end
             end
             FFI.set_linkage!(gptr, encode_llvm(st, g.linkage))
             FFI.set_visibility!(gptr, encode_llvm(st, g.visibility))

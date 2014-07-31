@@ -128,7 +128,7 @@ create_builder_in_ctx(ctx) =
 dispose_builder(bld) =
     ccall((:LLVMDisposeBuilder, libllvm), Void, (BuilderPtr,), bld)
 
-pos_builder_end(bld, bb) = 
+position_builder_end(bld, bb) = 
     ccall((:LLVMPositionBuilderAtEnd, libllvm), Void, 
           (BuilderPtr, BasicBlockPtr), bld, bb) 
 
@@ -835,7 +835,7 @@ get_func_call_cov(fn) =
 set_func_call_cov!(fn, callcov) =
     ccall((:LLVMSetFunctionCallConv, libllvm), Void, (FunctionPtr, CallingCov), fn, callcov)
 
-add_func_attr(fn, attr) =
+add_func_attr!(fn, attr) =
     ccall((:LLVMAddFunctionAttr, libllvm), Void, (FunctionPtr, FunctionAttr), fn, attr)
 
 get_func_attr(fn) =
@@ -879,7 +879,7 @@ add_func_ret_attr(fn, attr) =
 get_gc(fn) =
     bytestring(ccall((:LLVMGetGC, libllvm), Ptr{Uint8}, (FunctionPtr,), fn))
 
-set_gc(fn, name) =
+set_gc!(fn, name) =
     ccall((:LLVMSetGC, libllvm), Void, (FunctionPtr, Ptr{Uint8}), fn, name)
 
 #------------------------------------------------------------------------------
@@ -895,7 +895,7 @@ get_aliasee(ga) =
     ccall((:LLVM_General_GetAliasee, libllvmgeneral), ConstPtr, (GlobalAliasPtr,), ga)
 
 # set the constant aliased by this alias
-set_aliasee(ga, cnst) =
+set_aliasee!(ga, cnst) =
     ccall((:LLVM_General_SetAliasee, libllvmgeneral), Void, 
           (GlobalAliasPtr, ConstPtr,), ga, cnst)
 
@@ -1346,9 +1346,9 @@ just_add_alias(mod, typ, name) =
     ccall((:LLVM_General_JustAddAlias, libllvmgeneral), GlobalAliasPtr, 
           (ModulePtr, TypePtr, Ptr{Uint8}), mod, typ, name)
 
-add_function(mod, name, typ) = 
+add_function(mod, name, typ) =
     ccall((:LLVMAddFunction, libllvm), FunctionPtr,
-          (ModulePtr, Ptr{Uint8}, typ), mod, name, typ)
+          (ModulePtr, Ptr{Uint8}, TypePtr), mod, name, typ)
 
 get_named_function(mod, name) =
     ccall((:LLVMGetNamedFunction, libllvm), FunctionPtr, (ModulePtr, Ptr{Uint8}), mod, name)
@@ -1735,8 +1735,10 @@ get_elem_type(typ) =
     ccall((:LLVMGetElementType, libllvm), TypePtr, (TypePtr,), typ)
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeFunction.html#ga8b0c32e7322e5c6c1bf7eb95b0961707
-function func_type()
-#TODO:
+func_type(rtyp, ptyps, vaargs::Bool) = begin
+    n = length(ptyps)
+    ccall((:LLVMFunctionType, libllvm), TypePtr,
+          (TypePtr, Ptr{TypePtr}, Cuint, LLVMBool), rtyp, ptyps, n, vaargs)
 end
 
 # http://llvm.org/doxygen/group__LLVMCCoreTypeSequential.html#ga299fe6147083678d0494b1b875f542fae
@@ -1872,7 +1874,7 @@ get_value_name(val) =
 
 # http://llvm.org/doxygen/group__LLVMCCoreValueGeneral.html#gac1f61f74d83d218d4943c018e8fd8d13
 set_value_name!(val, name) =
-    ccall((:LLVMValueName, libllvm), Void, (ValuePtr, Ptr{Uint8}), val, name)
+    ccall((:LLVMSetValueName, libllvm), Void, (ValuePtr, Ptr{Uint8}), val, name)
 
 # This function exposes the ID returned by llvm::Value::getValueID()
 # http://llvm.org/doxygen/classllvm_1_1Value.html#a2983b7b4998ef5b9f51b18c01588af3c

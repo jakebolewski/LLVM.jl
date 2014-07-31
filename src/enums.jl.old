@@ -22,7 +22,7 @@ baremodule FloatSemantics
     bogus = 6
 end
 
-baremodule AttributeEnum
+baremodule Attribute
     z_ext_attribute = 1
     s_ext_attribute = 2
     no_return_attribute = 4

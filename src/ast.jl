@@ -1,6 +1,6 @@
 module Ast
 
-import ..IntPred
+import ..IntPred, ..Attribute
 
 using ..OrderedDict
 
@@ -48,6 +48,15 @@ for typ in [:SignExt, :InReg, :SRet, :NoAlias, :ByVal, :NoCapture, :Nest]
     end
 end
 
+const param_attr_map = (Int => ParamAttr)[
+    Attribute.s_ext => SignExt(),
+    Attribute.in_reg => InReg(),
+    Attribute.no_alias => NoAlias(),
+    Attribute.by_val => ByVal(),
+    Attribute.nest => Nest(),
+    Attribute.no_capture => NoCapture(),
+]
+
 # -----------------------------------------------------------------------------
 # Function Attributes 
 # -----------------------------------------------------------------------------
@@ -70,6 +79,24 @@ for typ in [:NoReturn, :NoUnwind, :ReadNone, :ReadOnly, :NoInline,
         end
     end
 end 
+
+const func_attr_map = (Int => FuncAttr)[
+    Attribute.no_return => NoReturn(),
+    Attribute.no_unwind => NoUnwind(),
+    Attribute.read_none => ReadNone(),
+    Attribute.read_only => ReadOnly(),
+    Attribute.no_inline => NoInline(),
+    Attribute.always_inline => AlwaysInline(),
+    Attribute.optimize_for_size => OptimizeForSize(),
+    Attribute.stack_protect => StackProtect(), 
+    Attribute.stack_protect_req => StackProtectReq(),
+    Attribute.no_red_zone => NoRedZone(),
+    Attribute.no_implicit_float => NoImplicitFloat(), 
+    Attribute.naked => Naked(),
+    Attribute.inline_hint => InlineHint(), 
+    Attribute.returns_twice => ReturnsTwice(),
+    Attribute.uw_table => UWTable()
+]
 
 # -----------------------------------------------------------------------------
 # Calling Conventions
@@ -225,9 +252,9 @@ Base.convert(::Type{LLVMType}, ::Type{Float64}) = FloatType(64, IEEE())
 
 # http://llvm.org/docs/LangRef.html#function-type
 immutable FuncType <: LLVMType
-    restyp::LLVMType
+    rettyp::LLVMType
     argtyps::Vector{LLVMType}
-    varargs::Bool
+    vaargs::Bool
 end 
 
 # http://llvm.org/docs/LangRef.html#vector-type 

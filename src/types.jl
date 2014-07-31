@@ -1,9 +1,8 @@
 module Types
 
-export LLVMBool, ContextPtr, TypePtr, GlobalValuePtr, ValuePtr, ModulePtr, 
-       ConstPtr, UserPtr, GlobalAliasPtr, FunctionPtr, RawOStreamPtr,
-       MemoryBufferPtr, SMDiagnosticPtr, BasicBlockPtr, BuilderPtr, MDNodePtr,
-       InstructionPtr, isnull
+export LLVMBool, LLVMPtr, ContextPtr, TypePtr, GlobalPtr, GlobalValuePtr, ValuePtr, ModulePtr, 
+       ConstPtr, UserPtr, GlobalAliasPtr, FunctionPtr, RawOStreamPtr, MemoryBufferPtr, 
+       SMDiagnosticPtr, BasicBlockPtr, BuilderPtr, MDNodePtr, InstructionPtr, ParamPtr, isnull
 
 typealias LLVMBool Cint
 typealias CodeModel Cint
@@ -133,7 +132,9 @@ end
 Base.convert(::Type{UserPtr}, ptr::ConstPtr) = UserPtr(ptr.ptr)
 Base.convert(::Type{ValuePtr}, ptr::ConstPtr) = ValuePtr(ptr.ptr)
 
-immutable GlobalValuePtr <: LLVMPtr
+abstract GlobalPtr <: LLVMPtr
+
+immutable GlobalValuePtr <: GlobalPtr
     ptr::Ptr{Void}
 end 
 
@@ -141,7 +142,7 @@ Base.convert(::Type{ValuePtr}, ptr::GlobalValuePtr) = ValuePtr(ptr.ptr)
 Base.convert(::Type{UserPtr},  ptr::GlobalValuePtr) = UserPtr(ptr.ptr)
 Base.convert(::Type{ConstPtr}, ptr::GlobalValuePtr) = ConstPtr(ptr.ptr)
 
-immutable GlobalAliasPtr <: LLVMPtr
+immutable GlobalAliasPtr <: GlobalPtr
     ptr::Ptr{Void}
 end
 
@@ -150,7 +151,7 @@ Base.convert(::Type{UserPtr},  ptr::GlobalAliasPtr) = UserPtr(ptr.ptr)
 Base.convert(::Type{ConstPtr}, ptr::GlobalAliasPtr) = ConstPtr(ptr.ptr)
 Base.convert(::Type{GlobalValuePtr}, ptr::GlobalAliasPtr) = GlobalValuePtr(ptr.ptr)
 
-immutable FunctionPtr <: LLVMPtr
+immutable FunctionPtr <: GlobalPtr
     ptr::Ptr{Void}
 end
 
