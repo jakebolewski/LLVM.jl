@@ -10,7 +10,7 @@ testast = Ast.Mod("run_something", nothing, nothing, [
             rettyp = Ast.IntType(32),
             params = [Ast.Param(Int32, Ast.Name("bar"))],
             blocks = [
-                Ast.BasicBlock(Ast.UnName(0), 
+                Ast.BasicBlock(Ast.Name("test"), 
                     Ast.Ret(Ast.ConstOperand(Ast.ConstInt(32, 42)))
                 )
             ]
@@ -19,4 +19,6 @@ testast = Ast.Mod("run_something", nothing, nothing, [
 )
 
 const ctx = LLVM.global_ctx()
-LLVM.module_from_ast(ctx, testast) 
+
+ast = LLVM.module_from_ast(ctx, testast) 
+println(LLVM.module_to_assembly(ctx, ast))

@@ -203,7 +203,8 @@ decode_llvm(st::DecodeState, cptr::ConstPtr) = begin
         @assert isa(typ, Ast.ArrayType)
         vals = Array(Ast.Constant, typ.len)
         for i = 1:typ.len
-            vals[i] = decode_llvm(st, FFI.get_constant_operand(cptr, i))
+            vals[i] = decode_llvm(st, 
+                FFI.get_constant_operand(cptr, i))
         end 
         return Ast.ConstArray(typ.typ, vals)
 
@@ -283,6 +284,7 @@ define_basic_block!(st::EncodeState,
     st.blocks[bname] = ptr
     return
 end
+
 define_basic_block!(st::EncodeState, fname, bname, ptr) =
     define_basic_block(st, isa(fname, String) ? Ast.Name(fname) : fname::Ast.LLVMName,
                            isa(bname, String) ? Ast.Name(bname) : bname::Ast.LLVMName, ptr)
@@ -416,7 +418,7 @@ encode_llvm(st::EncodeState, undef::Ast.ConstUndef) =
 
 encode_llvm(st::EncodeState, addr::Ast.AddrSpace) = addr.val
 
-encode_llvm(st::EncodeState, name::Ast.Name) = name.val
+encode_llvm(st::EncodeState, name::Ast.Name)   = name.val
 encode_llvm(st::EncodeState, name::Ast.UnName) = ""
 
 encode_llvm(st::EncodeState, ::Ast.Linkage{:External}) = 0
@@ -486,10 +488,11 @@ encode_llvm(st::EncodeState, inst::Ast.ConstICmp) = begin
 end
 
 # Encode Operands
-encode_llvm(st::EncodeState, op::Ast.ConstOperand) = encode_llvm(st, op.val)
+encode_llvm(st::EncodeState, op::Ast.ConstOperand) = 
+    encode_llvm(st, op.val)
 
 # Encode Terminators 
-encode_llvm(st::EncodeState, term::Ast.Ret) =
+encode_llvm(st::EncodeState, term::Ast.Ret) = 
     is(term.op, nothing) ? FFI.build_ret_void(st.builder) :
                            FFI.build_ret(st.builder, encode_llvm(st, term.op))
 
@@ -523,27 +526,27 @@ end
 # llvm takes ownership of the buffer
 module_from_bitcode(ctx::Context, bytes::Union(ByteString, IOBuffer)) = begin
     buf = FFI.create_mem_buffer_with_mem_range("<bytes>", bytes.data)
-    module_from_bitcode(ctx, buf)
+    return module_from_bitcode(ctx, buf)
 end
 
 module_from_bitcode(ctx::Context, name::String, bytes::Union(ByteString, IOBuffer)) = begin
     buf = FFI.create_mem_buffer_with_mem_range(name, bytes.data)
-    module_from_bitcode(ctx, buf)
+    return module_from_bitcode(ctx, buf)
 end 
 
 module_from_bitcode(ctx::Context, bytes::Vector{Uint8}) = begin
     buf = FFI.create_mem_buffer_with_mem_range("<bytes>", bytes)
-    module_from_bitcode(ctx, buf)
+    return module_from_bitcode(ctx, buf)
 end 
 
 module_from_bitcode(ctx::Context, name::String, bytes::Vector{Uint8}) = begin
     buf = FFI.create_mem_buffer_with_mem_range(name, bytes)
-    module_from_bitcode(ctx, buf)
+    return module_from_bitcode(ctx, buf)
 end 
 
 module_from_bitcode_file(ctx::Context, path::String) = begin
     buf = FFI.create_mem_buffer_with_contents_of_file(path)
-    module_from_bitcode(ctx, buf)
+    return module_from_bitcode(ctx, buf)
 end 
 
 module_to_bitcode(ctx::Context, mod::ModulePtr) = begin
@@ -666,7 +669,7 @@ module_from_ast(ctx::Context, mod::Ast.Mod) = begin
             elseif isa(g, Ast.Func)
                 @assert isa(gptr, FunctionPtr)
                 FFI.set_func_call_cov!(gptr, encode_llvm(st, g.callingcov))
-                FFI.add_func_ret_attr(gptr, encode_llvm(st, g.retattrs))
+                FFI.add_func_ret_attr!(gptr, encode_llvm(st, g.retattrs))
                 FFI.add_func_attr!(gptr, encode_llvm(st, g.attrs))
                 if g.section != nothing
                     FFI.set_section!(gptr, g.section)
@@ -682,24 +685,28 @@ module_from_ast(ctx::Context, mod::Ast.Mod) = begin
                     define_basic_block!(st, g.name, blk.name, b)
                 end
                 with_locals(st) do st
+                    # define and add func parameters
                     pptrs = FFI.get_params(gptr)
                     for p in g.params, pptr in pptrs
                         define_local!(st, g.name, pptr)
-                        FFI.set_value_name!(pptr, encode_llvm(st, g.name))
+                        FFI.set_value_name!(pptr, encode_llvm(st, p.name))
                         if !isempty(p.attrs)
-                            FFI.add_attribute(pptr, encode_llvm(st, g.attrs))
+                            FFI.add_attribute!(pptr, encode_llvm(st, p.attrs))
                         end
                     end
+                    # build basic blocks
                     for b in g.blocks
                         bptr = st.blocks[b.name]
                         FFI.position_builder_end(st.builder, bptr)
+                        # encode basic block instructions
                         for inst in b.insts
                             encode_llvm(st, inst)
                         end
+                        # encode basic block terminator
                         encode_llvm(st, b.term)
                     end
                 end
-                # error out if all forward declared locals have not been defined
+                # error out if any forward declared locals have not been realized 
                 for (k, v) in st.locals
                     isa(v, ForwardVal) && error("local $k is undefined")
                 end

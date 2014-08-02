@@ -62,4 +62,3 @@ facts("Data Layout") do
         @fact string(LLVM.parse_datalayout(str)) => str
     end
 end 
-

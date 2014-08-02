@@ -137,7 +137,7 @@ build_ret_void(bld) =
           (BuilderPtr,), bld)
 
 build_ret(bld, val) = 
-    ccall((:LLVMPositionBuilderAtEnd, libllvm), InstructionPtr,
+    ccall((:LLVMBuildRet, libllvm), InstructionPtr,
           (BuilderPtr, ValuePtr), bld, val)
 
 build_br(bld, bb) = 
@@ -353,6 +353,7 @@ build_shuffle_vector(bld, v1, v2, mask, name) =
     ccall((:LLVMBuildShuffleVector, libllvm), InstructionPtr,
           (BuilderPtr, ValuePtr, ValuePtr, ConstPtr, Ptr{Uint8}),
           bld, v1, v2, mask, name)
+
 # TODO: llvm3.5
 build_extract_value(bld, a, idxs, name) = begin
     nidxs = length(idxs)
@@ -866,13 +867,13 @@ end
 get_attribute(param) =
     ccall((:LLVMGetAttribute, libllvm), ParamAttr, (ParamPtr,), param) 
 
-add_attribute(param, attr) =
+add_attribute!(param, attr) =
     ccall((:LLVMAddAttribute, libllvm), Void, (ParamPtr, ParamAttr), param, attr)
 
 get_func_ret_attr(fn) =
     ccall((:LLVM_General_GetFunctionRetAttr, libllvmgeneral), ParamAttr, (FunctionPtr,), fn)
 
-add_func_ret_attr(fn, attr) =
+add_func_ret_attr!(fn, attr) =
     ccall((:LLVM_General_AddFunctionRetAttr, libllvmgeneral), Void,
           (FunctionPtr, ParamAttr), fn, attr)
 
