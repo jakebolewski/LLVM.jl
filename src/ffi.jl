@@ -14,7 +14,7 @@ typealias Linkage          Cint
 typealias Visibility       Cint
 typealias CallingCov       Cint
 typealias FunctionAttr     Cint
-typealias ParamAttr        Cint
+typealias ParamAttr        Cuint
 typealias COpcode          Cuint
 typealias MDKindID         Cint
 typealias FloatABIType     Cint
@@ -39,6 +39,9 @@ list{T<:Types.LLVMPtr}(::Type{T}, first::T, next::Function) = begin
     end
     return lst 
 end
+
+dispose_message(msg::Ptr{Uint8}) = 
+    ccall((:LLVMDisposeMessage, libllvm), Void, (Ptr{Uint8},), msg)
 
 #------------------------------------------------------------------------------
 # Analysis 
@@ -156,12 +159,12 @@ build_indirect_br(bld, val, n) =
     ccall((:LLVMBuildIndirectBr, libllvm), InstructionPtr,
           (BuilderPtr, ValuePtr, Cuint), bld, val, n)
 
-build_invoke(bld, fn, args, thenblk, catchblk, name) = begin
+build_invoke(bld, fn, args, thenbb, catchbb, name) = begin
     nargs = length(args)
     ccall((:LLVMBuildInvoke, libllvm), InstructionPtr,
           (BuilderPtr, ValuePtr, Ptr{ValuePtr}, CUInt, Ptr{BasicBlockPtr},
            Ptr{BasicBlockPtr}, Ptr{Uint8}),
-           bld, fn, args, nargs, thenblk, catchblk, name)
+           bld, fn, args, nargs, thenbb, catchbb, name)
 end
 
 build_resume(bld, val) =
@@ -678,76 +681,85 @@ end
 # Execution Engine 
 #------------------------------------------------------------------------------
 create_execution_engine_for_module(mod) = begin
-    errptr    = Ptr{Uint8}[0]
-    engineptr = [ExeEnginePtr(C_NULL)]
-    success   = bool(ccall((:LLVMCreateExecutionEngineForModule, libllvm), LLVMBool,
-                           (Ptr{ExeEnginePtr}, ModulePtr, Ptr{Ptr{Uint8}}),
-                           engineptr, mod, errptr))
-    if !success
-        !isnull(engineptr) # dispose engine
-        if errptr[1] == C_NULL
-            error("unknown error in creating execution engine for module")
+    errptr = Ptr{Uint8}[0]
+    engptr = [ExeEnginePtr(C_NULL)]
+    ret = ccall((:LLVMCreateExecutionEngineForModule, libllvm), LLVMBool,
+                (Ptr{ExeEnginePtr}, ModulePtr, Ptr{Ptr{Uint8}}), engptr, mod, errptr)
+    eng = engptr[1]
+    if ret != 0
+        isnull(eng) || FFI.dispose_execution_engine(eng)
+        if errptr[1] != C_NULL
+            msg = bytestring(errptr[1])
+            FFI.dispose_message(errptr[1])
         else
-            error(bytestring(errptr[1]))
+            msg = "unknown error in creating execution engine for module"
         end
+        throw(ErrorException(msg))
     end
-    engine = engineptr[1]
-    @assert !isnull(engine)
-    return engine
+    @assert !isnull(eng)
+    return eng
 end
 
 create_interpreter_for_module(mod) = begin
     errptr = Ptr{Uint8}[0]
-    engineptr = [ExeEnginePtr(C_NULL)]
-    success = bool(ccall((:LLVMCreateInterpreterForModule, libllvm), LLVMBool,
-                         (Ptr{ExeEnginePtr}, ModulePtr, errptr),
-                         engineptr, mod, errptr))
-    if !success
-        !isnull(engineptr) # dispose engine
-        if errptr[1] == C_NULL
-            error("unknown error in creating interpreter for module")
+    engptr = [ExeEnginePtr(C_NULL)]
+    ret = ccall((:LLVMCreateInterpreterForModule, libllvm), LLVMBool,
+                (Ptr{ExeEnginePtr}, ModulePtr, errptr), engptr, mod, errptr)
+    eng = engptr[1]
+    if ret != 0 
+        isnull(eng) || FFI.dispose_execution_engine(eng)
+        if errptr[1] != C_NULL
+            msg = bytestring(errptr[1])
+            FFI.dispose_message(errptr[1])
         else
-            error(bytestring(errptr[1]))
+            msg = "unknown error in creating interpreter for module"
         end
+        throw(ErrorException(msg))
     end
-    engine = engineptr[1]
-    @assert !isnull(engine)
-    return engine
+    @assert !isnull(eng)
+    return eng
 end
 
 create_jit_compiler_for_module(mod, optlevel) = begin
     errptr = Ptr{Uint8}[0]
-    engineptr = [ExeEnginePtr(C_NULL)]
-    success = bool(ccall((:LLVMCreateJITCompilerForModule, libllvm), LLVMBool,
-                         (Ptr{ExeEnginePtr}, ModulePtr, Cuint, errptr),
-                         engineptr, mod, optlevel, errptr))
-    if !success
-        !isnull(engineptr) # dispose engine
-        if errptr[1] == C_NULL
-            error("unknown error in creating jit compiler for module")
+    engptr = [ExeEnginePtr(C_NULL)]
+    ret = ccall((:LLVMCreateJITCompilerForModule, libllvm), LLVMBool,
+                (Ptr{ExeEnginePtr}, ModulePtr, Cuint, Ptr{Ptr{Uint8}}),
+                engptr, mod, optlevel, errptr)
+    eng = engptr[1]
+    if ret != 0
+        isnull(eng) || FFI.dispose_execution_engine(eng) 
+        if errptr[1] != C_NULL
+            msg = bytestring(errptr[1])
+            FFI.dispose_message(errptr[1])
         else
-            error(bytestring(errptr[1]))
+            msg = "unknown error in creating jit compiler for module"
         end
     end
-    engine = engineptr[1]
-    @assert !isnull(engine)
-    return engine
+    @assert !isnull(eng)
+    return eng
 end
 
 create_mcjit_compiler_for_module(mod, opts) = begin
+    @assert !isnull(mod)
     errptr = Ptr{Uint8}[0]
-    engineptr = [ExeEnginePtr(C_NULL)]
-    success = bool(ccall((:LLVMCreateJITCompilerForModule, libllvm), LLVMBool,
-                         (Ptr{ExeEnginePtr}, ModulePtr, Ptr{JITCompilerOpts}, Csize_t, errptr),
-                         engineptr, mod, &opts, sizeof(opts), errptr))
-    if !success
-        !isnull(engineptr) # dispose engine
-        errptr[1] == C_NULL ? error("unknown error in creating jit compiler for module") :
-                              error(bytestring(errptr[1]))
+    engptr = [ExeEnginePtr(C_NULL)]
+    res = ccall((:LLVMCreateMCJITCompilerForModule, libllvm), LLVMBool,
+                (Ptr{ExeEnginePtr}, ModulePtr, Ptr{JITCompilerOpts}, Csize_t, Ptr{Ptr{Uint8}}),
+                engptr, mod, &opts, sizeof(opts), errptr)
+    eng = engptr[1]
+    if res != 0
+        isnull(eng) || FFI.dispose_execution_engine(eng)
+        if errptr[1] != C_NULL
+            msg = bytestring(errptr[1])
+            FFI.dispose_message(errptr[1])
+        else
+            msg = "unknown error in creating mcjit compiler for module"
+        end 
+        throw(ErrorException(msg))
     end
-    engine = engineptr[1]
-    @assert !isnull(engine)
-    return engine
+    @assert !isnull(eng) 
+    return eng 
 end
 
 dispose_execution_engine(engine) =
@@ -759,26 +771,33 @@ add_module(engine, mod) =
 remove_module(engine, mod) = begin
     errptr = Ptr{Uint8}[0]
     modptr = [ModulePtr(C_NULL)]
-    success = bool(ccall((:LLVMRemoveModule, libllvm), LLVMBool,
-                         (ExeEnginePtr, ModulePtr, Ptr{ModulePtr}, Ptr{Ptr{Uint8}}),
-                         engine, mod, modptr, errptr))
-    if !success
-        errmsg[1] == C_NULL ? error("unknown error when removing module from engine") :
-                              error(bytestring(errptr[1]))
+    ret = ccall((:LLVMRemoveModule, libllvm), LLVMBool,
+                (ExeEnginePtr, ModulePtr, Ptr{ModulePtr}, Ptr{Ptr{Uint8}}),
+                engine, mod, modptr, errptr)
+    mod = modptr[1]
+    if ret != 0
+        isnull(mod) || FFI.dispose_module(mod)
+        if errptr[1] != C_NULL
+            msg = bytestring(errptr[1])
+            FFI.dispose_message(errptr[1])
+        else
+            msg = "unknown error when removing module from engine"
+        end
+        throw(ErrorException(msg))
     end
-    rmmod = modptr[1]
-    @assert !isnull(rmmod)
-    return rmmod
+    @assert !isnull(mod)
+    return mod
 end
         
 find_function(engine, name) = begin
     fnptr = [FunctionPtr(C_NULL)]
-    success = bool(ccall((:LLVMFindFunction, libllvm), LLVMBool,
-                         (ExeEnginePtr, Ptr{Uint8}, Ptr{FunctionPtr}),
-                         engine, name, fnptr))
-    !success && error("\"$name\" function not found in engine")
-    @assert !isnull(fnptr[1])
-    return fnptr[1]
+    ret = ccall((:LLVMFindFunction, libllvm), LLVMBool,
+                (ExeEnginePtr, Ptr{Uint8}, Ptr{FunctionPtr}),
+                engine, name, fnptr)
+    ret != 0 && throw(ErrorException("\"$name\" function not found in engine"))
+    fn = fnptr[1]
+    @assert !isnull(fn)
+    return fn
 end 
 
 get_ptr_to_global(engine, gval) =
@@ -800,19 +819,21 @@ get_mcjit_compiler_opts_size() =
 init_mcjit_compiler_opts(opts) = begin
     sz = get_mcjit_compiler_opts_size()
     ccall((:LLVMInitializeMCJITCompilerOptions, libllvm), Void,
-          (MCJITOptsPtr, Csize_t), opts, sz) 
+          (Ptr{JITCompilerOpts}, Csize_t), &opts, sz) 
 end
 
 set_mcjit_compiler_level(opts, level) = begin
+    optsptr = [opts]
     ccall((:LLVM_General_SetMCJITCompilerOptionsOptLevel, libllvmgeneral), Void,
-          (MCJITOptsPtr, level), opts, level)
-    return opts
+          (Ptr{JITCompilerOpts}, Cint), optsptr, level)
+    return optsptr[1]
 end
 
 set_mcjit_compiler_codemodel(opts, model) = begin
+    optsptr = [opts]
     ccall((:LLVM_General_SetMCJITCompilerOptionsCodeModel, libllvmgeneral), Void,
-          (MCJITOptsPtr, CodeModel), opts, model)
-    return opts
+          (Ptr{JITCompilerOpts}, CodeModel), optsptr, model)
+    return optsptr[1]
 end
 
 set_mcjit_compiler_no_frame_ptr_elim(opts, v::Bool) = begin
@@ -848,8 +869,8 @@ get_first_basicblock(fn) =
 get_last_basicblock(fn) =
     ccall((:LLVMGetLastBasicBlock, libllvm), BasicBlockPtr, (FunctionPtr,), fn)
 
-get_next_basicblock(fn) =
-    ccall((:LLVMGetNextBasicBlock, libllvm), BasicBlockPtr, (FunctionPtr,), fn)
+get_next_basicblock(bb) =
+    ccall((:LLVMGetNextBasicBlock, libllvm), BasicBlockPtr, (BasicBlockPtr,), bb)
 
 append_basicblock_in_ctx(ctx, fn, name) =
     ccall((:LLVMAppendBasicBlockInContext, libllvm), BasicBlockPtr,
@@ -877,8 +898,10 @@ add_func_ret_attr!(fn, attr) =
     ccall((:LLVM_General_AddFunctionRetAttr, libllvmgeneral), Void,
           (FunctionPtr, ParamAttr), fn, attr)
 
-get_gc(fn) =
-    bytestring(ccall((:LLVMGetGC, libllvm), Ptr{Uint8}, (FunctionPtr,), fn))
+get_gc(fn) = begin
+    ptr = ccall((:LLVMGetGC, libllvm), Ptr{Uint8}, (FunctionPtr,), fn)
+    ptr != zero(Ptr{Uint8}) ? bytestring(ptr): nothing 
+end
 
 set_gc!(fn, name) =
     ccall((:LLVMSetGC, libllvm), Void, (FunctionPtr, Ptr{Uint8}), fn, name)
@@ -1157,11 +1180,11 @@ is_cleanup(landingpad) =
 
 set_metadata(inst, mdkind, mdnodes) =
     ccall((:LLVMSetMetadata, libllvm), Void,
-          (InstructionPtr, MDKindID, Ptr{MDNode}), inst, mdkind, mdnodes)
+          (InstructionPtr, MDKindID, Ptr{MDNodePtr}), inst, mdkind, mdnodes)
             
 get_metadata(inst, mdkinds, mdnodes, nkinds) =
     ccall((:LLVM_General_GetMetadata, libllvmgeneral), Cuint,
-          (InstructionPtr, Ptr{MDKindID}, Ptr{MDNode}, Cuint),
+          (InstructionPtr, Ptr{MDKindID}, Ptr{MDNodePtr}, Cuint),
           inst, mdkinds, mdnodes, nkinds)
 
 #------------------------------------------------------------------------------
@@ -1374,6 +1397,9 @@ link_modules(dest, src, mode, msg) = begin
           dest, src, mode, out_msg)
 end 
 
+dump_module(mod) =
+    ccall((:LLVMDumpModule, libllvm), Void, (ModulePtr,), mod)
+
 #------------------------------------------------------------------------------
 # Pass Manager 
 #------------------------------------------------------------------------------
@@ -1551,7 +1577,7 @@ end
 #------------------------------------------------------------------------------
 
 init_native_target() = 
-    bool(ccall((:LLVM_General_InitializeNativeTarget, libllvmgeneral), LLVMBool, ()))
+    ccall((:LLVM_General_InitializeNativeTarget, libllvmgeneral), LLVMBool, ()) == 0
 
 lookup_target(arch, ctriple, tripleout, cerr) = begin
     tripleout, cerr = Ptr{Uint8}[0], Ptr{Uint8}[0]
@@ -1565,12 +1591,12 @@ create_target_opts() =
     ccall((:LLVM_General_CreateTargetOptions, libllvmgeneral), TargetOptionsPtr, ())
 
 set_target_opt_flag(topt, flag) =
-    bool(ccall((:LLVM_General_SetTargetOptionFlag, libllvmgeneral), LLVMBool,
-               (TargetOptionsPtr, TargetOptionFlag), topt, flag)) 
+    ccall((:LLVM_General_SetTargetOptionFlag, libllvmgeneral), LLVMBool,
+          (TargetOptionsPtr, TargetOptionFlag), topt, flag) == 0
 
 get_target_opt_flag(topt, flag) =
-    bool(ccall((:LLVM_General_GetTargetOptionFlag, libllvmgeneral), LLVMBool,
-               (TargetOptionsPtr, TargetOptionFlag), topt, flag))
+    ccall((:LLVM_General_GetTargetOptionFlag, libllvmgeneral), LLVMBool,
+          (TargetOptionsPtr, TargetOptionFlag), topt, flag) == 0
 
 set_stack_align_override(topt, val) =
     ccall((:LLVM_General_SetStackAlignmentOverride, libllvmgeneral), Void, 
@@ -1620,10 +1646,10 @@ dispose_target_machine(tmachine) =
     ccall((:LLVMDisposeTargetMachine, libllvm), Void, (TargetMachinePtr,), tmachine)
 
 target_machine_emit(tmachine, mod, code_gen_ftype, dest) = begin
-    errmsg = Ptr{Uint8}[0]
-    res = bool(ccall((:LLVM_General_TargetMachineEmit, libllvmgeneral), LLVMBool,
-                     (TargetMachinePtr, ModulePtr, CodeGenFileType, Ptr{Ptr{Uint8}}, RawOStreamPtr),
-                     tmachine, mod, code_gen_ftype, errmsg, dest))
+    errptr = Ptr{Uint8}[0]
+    res = ccall((:LLVM_General_TargetMachineEmit, libllvmgeneral), LLVMBool,
+                (TargetMachinePtr, ModulePtr, CodeGenFileType, Ptr{Ptr{Uint8}}, RawOStreamPtr),
+                tmachine, mod, code_gen_ftype, errmsg, dest)
     #TODO: errsmg
     return res
 end
@@ -1858,8 +1884,11 @@ get_next_use(usr) =
 get_num_operands(usr) =
     ccall((:LLVMGetNumOperands, libllvm), Cuint, (UserPtr,), usr)
     
-get_operand(usr, n) = 
-    ccall((:LLVMGetOperand, libllvm), ValuePtr, (UserPtr, Cuint), usr, n)
+get_operand(usr, n) = begin
+    (n < 1 || n > get_num_operands(usr)) && throw(BoundsError())
+    vptr = ccall((:LLVMGetOperand, libllvm), ValuePtr, (UserPtr, Cuint), usr, n-1)
+    isa_constant(vptr) ? ConstPtr(vptr.ptr) : vptr
+end
 
 #------------------------------------------------------------------------------
 # Value 

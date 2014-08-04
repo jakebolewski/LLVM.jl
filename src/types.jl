@@ -2,7 +2,8 @@ module Types
 
 export LLVMBool, LLVMPtr, ContextPtr, TypePtr, GlobalPtr, GlobalValuePtr, ValuePtr, ModulePtr, 
        ConstPtr, UserPtr, GlobalAliasPtr, FunctionPtr, RawOStreamPtr, MemoryBufferPtr, 
-       SMDiagnosticPtr, BasicBlockPtr, BuilderPtr, MDNodePtr, InstructionPtr, ParamPtr, isnull
+       SMDiagnosticPtr, BasicBlockPtr, BuilderPtr, MDNodePtr, InstructionPtr, ParamPtr, 
+       ExeEnginePtr, JITCompilerOpts, isnull
 
 typealias LLVMBool Cint
 typealias CodeModel Cint
@@ -77,12 +78,12 @@ immutable JITCompilerOpts
     enable_fast_isel::LLVMBool
     memory_manager::MemManagerPtr
 
-    JITCompilerOpts(optlevel, 
+    JITCompilerOpts(optlevel,
                     codemodel, 
                     no_frame_ptr_elim::Bool, 
-                    enable_fast_isel::Bool, 
-                    memory_manager) = begin
+                    enable_fast_isel::Bool) = begin
         @assert optlevel >= 0
+        memory_manager = MemManagerPtr(C_NULL)
         return new(optlevel, 
                    codemodel,
                    no_frame_ptr_elim, 

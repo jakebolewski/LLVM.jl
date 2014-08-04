@@ -197,8 +197,8 @@ void LLVM_General_AddAddressSanitizerModulePass(
 	const char *blacklistFile,
 	bool zeroBaseShadow
 ) {
-	//TODO: options
-	unwrap(PM)->add(createAddressSanitizerModulePass(blacklistFile));
+	//TODO: options, blacklist file
+	unwrap(PM)->add(createAddressSanitizerModulePass());
 }
 
 void LLVM_General_AddMemorySanitizerPass(

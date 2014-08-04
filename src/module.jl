@@ -4,7 +4,7 @@
 type DecodeState
     ctx::Context
     global_var_num::OrderedDict{GlobalPtr, Int}
-    local_var_num::OrderedDict{ValuePtr,Int}
+    local_var_num::OrderedDict{LLVMPtr,Int}
     local_name_counter::Int
     named_type_num::OrderedDict{TypePtr,Int}
     types_to_define::Vector{TypePtr}
@@ -12,12 +12,12 @@ end
 DecodeState(ctx::Context) = 
     DecodeState(ctx,
                 OrderedDict{GlobalPtr,Int}(),
-                OrderedDict{ValuePtr,Int}(),
+                OrderedDict{LLVMPtr,Int}(),
                 -1,
                 OrderedDict{TypePtr,Int}(),
                 TypePtr[]) 
 
-add_global!(st::DecodeState, val::GlobalValuePtr) = begin
+add_global!(st::DecodeState, val::GlobalPtr) = begin
     if haskey(st.global_var_num, val) || !isempty(FFI.get_value_name(val))
         return
     end
@@ -26,7 +26,7 @@ add_global!(st::DecodeState, val::GlobalValuePtr) = begin
     return 
 end
 
-get_global_name(st::DecodeState, val::GlobalValuePtr) = begin
+get_global_name(st::DecodeState, val::GlobalPtr) = begin
     name = FFI.get_value_name(val)
     if !isempty(name)
         return Ast.Name(name)
@@ -40,10 +40,10 @@ get_global_name(st::DecodeState, val::GlobalValuePtr) = begin
     return Ast.UnName(n)
 end
 
-get_local_name(st::DecodeState, val::ValuePtr) = begin
+get_local_name(st::DecodeState, val) = begin
     name = FFI.get_value_name(val)
     if !isempty(name)
-        return Ast.Ast(name)
+        return Ast.Name(name)
     end
     if haskey(st.local_var_num, val)
         n = st.local_var_num[val]
@@ -79,6 +79,10 @@ decode_llvm(st::DecodeState, tptr::TypePtr) = begin
         return Ast.FloatType(32, Ast.IEEE())
     elseif k == TypeKind.double
         return Ast.FloatType(64, Ast.IEEE())
+    elseif k == TypeKind.func
+        return Ast.FuncType(decode_llvm(st, FFI.get_return_type(tptr)),
+                            [decode_llvm(st, ty) for ty in FFI.get_param_types(tptr)],
+                            FFI.is_func_var_arg(tptr))
     elseif k == TypeKind.struct
         if FFI.is_literal_struct(tptr)
             packed = FFI.is_packed_struct(tptr)
@@ -221,6 +225,30 @@ decode_llvm(buf::MemoryBufferPtr) = begin
     return res
 end
 decode_llvm(st::DecodeState, buf::MemoryBufferPtr) = decode_llvm(buf)
+
+get_metadata(iptr::InstructionPtr, n::Int) = begin
+    kinds = Array(Cint, n)
+    nodes = Array(MDNodePtr, n)
+    nn = FFI.get_metadata(iptr, kinds, nodes, n)
+    nn == 0 && return Ast.InstructionMetadata[]
+    nn > n  && return get_metadata(iptr, nn) 
+    return zip([decode_llvm(st, kd) for kd in kinds],
+               [decode_llvm(st, nd) for nd in nodes])
+end
+get_metadata(iptr::InstructionPtr) = get_metadata(iptr, 4)
+    
+
+decode_llvm(st::DecodeState, iptr::InstructionPtr) = begin
+    opcode = FFI.get_instr_def_opcode(iptr)
+    nops = FFI.get_num_operands(iptr)
+    meta = get_metadata(iptr)
+    if opcode == Opcode.ret
+        op = nops == 0 ? nothing : 
+             Ast.ConstOperand(decode_llvm(st, FFI.get_operand(iptr, 1)))
+        return Ast.Ret(op, meta)
+    end
+    error("unimplemented instruction opcode $opcode")
+end
 
 abstract LocalVal
 
@@ -371,7 +399,7 @@ encode_llvm(st::EncodeState, attrs::Vector{Ast.FuncAttr}) = begin
     bits = uint32(attrs[1])
     for i = 2:length(attrs)
         flag = Ast.func_attr_map[attrs[i]]
-        bits &= uint32(flag)
+        bits |= uint32(flag)
     end
     return bits
 end
@@ -718,6 +746,71 @@ module_from_ast(ctx::Context, mod::Ast.Mod) = begin
     return mod_ptr
 end
 
+get_func_attrs(st::DecodeState, fnptr::FunctionPtr) = begin
+    attrs = Ast.ParamAttr[]
+    attr = FFI.get_func_attr(fnptr)
+    bool(attr & Attribute.naked) && push!(attrs, Ast.Naked())
+    bool(attr & Attribute.no_return) && push!(attrs, Ast.NoReturn())
+    bool(attr & Attribute.no_unwind) && push!(attrs, Ast.NoUnwind())
+    bool(attr & Attribute.read_none) && push!(attrs, Ast.ReadNone())
+    bool(attr & Attribute.read_only) && push!(attrs, Ast.ReadOnly())
+    bool(attr & Attribute.no_inline) && push!(attrs, Ast.NoInline())
+    bool(attr & Attribute.uw_table)  && push!(attrs, Ast.UWTable())
+    bool(attr & Attribute.inline_hint) && push!(attrs, Ast.InlineHint())
+    bool(attr & Attribute.no_red_zone) && push!(attrs, Ast.NoRedZone())
+    bool(attr & Attribute.stack_protect) && push!(attrs, Ast.StackProtect())
+    bool(attr & Attribute.always_inline) && push!(attrs, Ast.AlwaysInline())
+    bool(attr & Attribute.returns_twice) && push!(attrs, Ast.ReturnsTwice())
+    bool(attr & Attribute.stack_alignment)   && push!(attrs, Ast.StackAlignment())
+    bool(attr & Attribute.stack_protect_req) && push!(attrs, Ast.StackProtectReq())
+    bool(attr & Attribute.optimize_for_size) && push!(attrs, Ast.OptimizeForSize())
+    bool(attr & Attribute.no_implicit_float) && push!(attrs, Ast.NoImplicitFloat())
+    return attrs
+end
+
+get_param_attrs(st::DecodeState, pptr::ParamPtr) = begin
+    attrs = Ast.ParamAttr[]
+    attr  = FFI.get_attribute(pptr)
+    bool(attr & Attribute.s_ext)      && push!(attrs, Ast.SignExt())
+    bool(attr & Attribute.in_reg)     && push!(attrs, Ast.InReg())
+    bool(attr & Attribute.struct_ret) && push!(attrs, Ast.SRet())
+    bool(attr & Attribute.no_alias)   && push!(attrs, Ast.NoAlias())
+    bool(attr & Attribute.by_val)     && push!(attrs, Ast.ByVal())
+    bool(attr & Attribute.no_capture) && push!(attrs, Ast.NoCapture())
+    bool(attr & Attribute.nest)       && push!(attrs, Ast.Nest())
+    return attrs
+end
+
+get_call_cov(st::DecodeState, fn::FunctionPtr) = begin
+    val = FFI.get_func_call_cov(fn)
+    val == CallingCov.c    && return Ast.CConvention()
+    val == CallingCov.fast && return Ast.FastConvention()
+    val == CallingCov.cold && return Ast.ColdConvention()
+    error("unhandled calling convention enum value: $val")
+end
+
+get_linkage(st::DecodeState, fn::FunctionPtr) = begin
+    val = FFI.get_visibility(fn)
+    val == 0 && return Ast.Linkage{:External}() 
+    error("unhandled linkage enum value: $val")
+end
+
+get_visibility(st::DecodeState, fn::FunctionPtr) = begin
+    val = FFI.get_visibility(fn)
+    val == 0 && return Ast.DefaultVisibility()
+    error("unhandled visibility enum value: $val")
+end
+
+get_params(st::DecodeState, fptr::FunctionPtr) = begin
+    ps = Ast.Param[]
+    for pptr in FFI.get_params(fptr)
+        push!(ps, Ast.Param(decode_llvm(st, FFI.llvm_typeof(pptr)),
+                            get_local_name(st, pptr),
+                            get_param_attrs(st, pptr)))
+    end
+    return ps
+end
+
 function module_to_ast(ctx::Context, mod_ptr::ModulePtr)
     # lift c++ module to Ast.Module 
     @assert ctx.handle == FFI.get_module_ctx(mod_ptr)
@@ -770,18 +863,45 @@ function module_to_ast(ctx::Context, mod_ptr::ModulePtr)
                               FFI.get_visibility(a),
                               FFI.llvm_typeof(a),
                               decode_llvm(st, FFI.get_aliasee(a)))
-        push!(defs, Ast.GlobalDefinition(var))
+        push!(defs, Ast.GlobalDef(var))
     end
-    for f in FFI.list(FunctionPtr,
-                      FFI.get_first_func(mod_ptr),
-                      FFI.get_next_func)
-        fname = get_global_name(st, f)
-        bblocks = BasicBlockPtr[]
-        for b in FFI.list(BasicBlockPtr,
-                          FFI.get_first_basicblock(f),
-                          FFI.get_next_basicblock)
+    for fn in FFI.list(FunctionPtr,
+                       FFI.get_first_func(mod_ptr),
+                       FFI.get_next_func)
+        fname = get_global_name(st, fn)
+        ptrty = decode_llvm(st, FFI.llvm_typeof(fn)) 
+        bblocks = Ast.BasicBlock[]
+        for bb in FFI.list(BasicBlockPtr,
+                           FFI.get_first_basicblock(fn),
+                           FFI.get_next_basicblock)
+            name  = get_local_name(st, bb)
+            iptrs = FFI.list(InstructionPtr, 
+                             FFI.get_first_instruction(bb), 
+                             FFI.get_next_instruction)
+            insts = Ast.Instruction[]
+            if length(iptrs) > 2
+                for i=1:length(iptrs)-1
+                    push!(insts, decode_llvm(st, iptrs[i]))
+                end
+            end
+            term  = decode_llvm(st, FFI.get_basicblock_terminator(bb)) 
+            push!(bblocks, Ast.BasicBlock(name, insts, term))
         end
-        error("unimplemented")
+        fnty = ptrty.typ
+        func = Ast.Func(get_linkage(st, fn), 
+                        get_visibility(st, fn),
+                        get_call_cov(st, fn), 
+                        get_func_attrs(st, fn), 
+                        fnty.rettyp,
+                        fname,
+                        get_params(st, fn),
+                        fnty.vaargs,
+                        get_func_attrs(st, fn),
+                        FFI.get_section(fn),
+                        FFI.get_alignment(fn),
+                        FFI.get_gc(fn),
+                        bblocks)
+        push!(defs, Ast.GlobalDef(func))
     end
 
     # struct definitions
@@ -790,4 +910,19 @@ function module_to_ast(ctx::Context, mod_ptr::ModulePtr)
     # metadata definitions
 
     return Ast.Mod(moduleid, datalayout, triple, defs)
+end
+
+# Exe Engine
+remove_module(eng::ExeEnginePtr, mod::ModulePtr) = FFI.remove_module(eng, mod)
+
+with_module_in_engine(f::Function, eng::ExeEnginePtr, mod::ModulePtr) = begin
+end
+
+with_engine(f::Function) = begin
+end
+
+with_jit(mod; optlevel=0) = begin
+    @assert optlevel >= 0
+    opts = JITCompilerOpts(1, 1, false, false)
+    return FFI.create_mcjit_compiler_for_module(mod, opts) 
 end

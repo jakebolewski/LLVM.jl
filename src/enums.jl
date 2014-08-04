@@ -163,39 +163,39 @@ baremodule RealPred
 end
 
 baremodule CallingCov
-    c = 0
-    fast = 8
-    cold = 9
-    web_kit_js = 12
-    any_reg = 13
-    x86_stdcall = 64
-    x86_fastcall = 65
+    const c = 0
+    const fast = 8
+    const cold = 9
+    const web_kit_js = 12
+    const any_reg = 13
+    const x86_stdcall = 64
+    const x86_fastcall = 65
 end
 
 baremodule Attribute
-    z_ext = 1
-    s_ext = 2
-    no_return = 4
-    in_reg = 8
-    struct_ret = 16
-    no_unwind = 32
-    no_alias = 64
-    by_val = 128
-    nest = 256
-    read_none = 512
-    read_only = 1024
-    no_inline = 2048
-    always_inline = 4096
-    optimize_for_size = 8192
-    stack_protect = 16384
-    stack_protect_req = 32768
-    alignment = 2031616
-    no_capture = 2097152
-    no_red_zone = 4194304
-    no_implicit_float = 8388608
-    naked = 16777216
-    inline_hint = 33554432
-    stack_alignment = 469762048
-    returns_twice = 536870912
-    uw_table = 1073741824
+    const z_ext = 1
+    const s_ext = 2
+    const no_return = 4
+    const in_reg = 8
+    const struct_ret = 16
+    const no_unwind = 32
+    const no_alias = 64
+    const by_val = 128
+    const nest = 256
+    const read_none = 512
+    const read_only = 1024
+    const no_inline = 2048
+    const always_inline = 4096
+    const optimize_for_size = 8192
+    const stack_protect = 16384
+    const stack_protect_req = 32768
+    const alignment = 2031616
+    const no_capture = 2097152
+    const no_red_zone = 4194304
+    const no_implicit_float = 8388608
+    const naked = 16777216
+    const inline_hint = 33554432
+    const stack_alignment = 469762048
+    const returns_twice = 536870912
+    const uw_table = 1073741824
 end

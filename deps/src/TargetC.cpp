@@ -17,6 +17,8 @@
 #include "Target.h"
 #include "LibFunc.h"
 
+#include <iostream>
+
 using namespace llvm;
 
 namespace llvm {
@@ -134,9 +136,10 @@ static TargetMachine::CodeGenFileType unwrap(LLVMCodeGenFileType x) {
 extern "C" {
 
 LLVMBool LLVM_General_InitializeNativeTarget() {
-	return LLVMInitializeNativeTarget()
-    || InitializeNativeTargetAsmPrinter()
-    || InitializeNativeTargetAsmParser();
+    std::cout << "CALLED INIT" << std::endl; 
+	return LLVMInitializeNativeTarget() || 
+           InitializeNativeTargetAsmPrinter() ||
+           InitializeNativeTargetAsmParser();
 }
 
 LLVMTargetRef LLVM_General_LookupTarget(
