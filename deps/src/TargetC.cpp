@@ -136,10 +136,9 @@ static TargetMachine::CodeGenFileType unwrap(LLVMCodeGenFileType x) {
 extern "C" {
 
 LLVMBool LLVM_General_InitializeNativeTarget() {
-    std::cout << "CALLED INIT" << std::endl; 
-	return LLVMInitializeNativeTarget() || 
-           InitializeNativeTargetAsmPrinter() ||
-           InitializeNativeTargetAsmParser();
+	return LLVMInitializeNativeTarget() ||
+	       InitializeNativeTargetAsmPrinter() ||
+	       InitializeNativeTargetAsmParser();
 }
 
 LLVMTargetRef LLVM_General_LookupTarget(
@@ -348,7 +347,6 @@ LLVMBool LLVM_General_TargetMachineEmit(
 		*ErrorMessage = strdup("TargetMachine can't emit a file of this type");
 		return true;
 	}
-
 	passManager.run(*unwrap(M));
 	return false;
 }

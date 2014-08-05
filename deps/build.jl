@@ -7,7 +7,7 @@ ENV["JULIA_ROOT"] = JULIA_ROOT
 cd(joinpath(Pkg.dir(), "LLVM", "deps", "src") )
 
 # Build libllvmgeneral library
-#run(`make clean`)
+run(`make clean`)
 run(`make`)
 
 DIR = abspath(dirname(@__FILE__))

@@ -11,8 +11,6 @@ ifndef JULIA_ROOT
   $(error Environment variable JULIA_ROOT is not set.)
 endif
 
-JULIA_ROOT = /home/jake/Julia/julia
-
 CC  = clang
 CXX = clang
 

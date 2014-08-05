@@ -5,17 +5,18 @@ export LLVMBool, LLVMPtr, ContextPtr, TypePtr, GlobalPtr, GlobalValuePtr, ValueP
        SMDiagnosticPtr, BasicBlockPtr, BuilderPtr, MDNodePtr, InstructionPtr, ParamPtr, 
        ExeEnginePtr, JITCompilerOpts, isnull
 
-typealias LLVMBool Cint
+typealias LLVMBool  Cint
 typealias CodeModel Cint
 
-# A LLVMPtr is an immutable type that wraps a void pointer
 abstract LLVMPtr 
 
 isnull(h::LLVMPtr) = is(h.ptr, zero(Ptr{Void}))
 
 Base.convert(::Type{Ptr{Void}}, ptr::LLVMPtr) = ptr.ptr
+
 Base.(:(==))(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr === p2.ptr
 Base.isequal(p1::LLVMPtr, p2::LLVMPtr) = p1.ptr == p2.ptr
+
 Base.hash(p::LLVMPtr) = hash(p.ptr)
 
 Base.show(io::IO, ptr::LLVMPtr) = begin

@@ -915,14 +915,20 @@ end
 # Exe Engine
 remove_module(eng::ExeEnginePtr, mod::ModulePtr) = FFI.remove_module(eng, mod)
 
-with_module_in_engine(f::Function, eng::ExeEnginePtr, mod::ModulePtr) = begin
-end
+get_function(eng::ExeEnginePtr, mod::ModulePtr, fname::String) = begin
+    fn = FFI.get_named_function(mod, fname)
+    isnull(fn) && return nothing
+    ptr = FFI.get_ptr_to_global(eng, fn)
+    return ptr != C_NULL ? ptr : nothing
+end 
 
-with_engine(f::Function) = begin
-end
-
-with_jit(mod; optlevel=0) = begin
+with_jit(f::Function, mod; optlevel=0) = begin
     @assert optlevel >= 0
-    opts = JITCompilerOpts(1, 1, false, false)
-    return FFI.create_mcjit_compiler_for_module(mod, opts) 
+    opt = JITCompilerOpts(0, 0, false, false)
+    eng = FFI.create_mcjit_compiler_for_module(mod, opt)
+    try
+        f(eng)
+    finally
+        !isnull(eng) && FFI.dispose_execution_engine(eng)
+    end
 end

@@ -745,8 +745,8 @@ create_mcjit_compiler_for_module(mod, opts) = begin
     errptr = Ptr{Uint8}[0]
     engptr = [ExeEnginePtr(C_NULL)]
     res = ccall((:LLVMCreateMCJITCompilerForModule, libllvm), LLVMBool,
-                (Ptr{ExeEnginePtr}, ModulePtr, Ptr{JITCompilerOpts}, Csize_t, Ptr{Ptr{Uint8}}),
-                engptr, mod, &opts, sizeof(opts), errptr)
+                (Ptr{ExeEnginePtr}, ModulePtr, Ptr{Void}, Csize_t, Ptr{Ptr{Uint8}}),
+                engptr, mod, C_NULL, 0, errptr)
     eng = engptr[1]
     if res != 0
         isnull(eng) || FFI.dispose_execution_engine(eng)
@@ -1661,14 +1661,14 @@ get_target_lowering(tmachine) =
 get_default_target_triple() = begin
     ptr = ccall((:LLVM_General_GetDefaultTargetTriple, libllvmgeneral), Ptr{Uint8}, ())
     res = bytestring(ptr)
-    c_free(ptr)
+    Base.c_free(ptr)
     return res
 end
 
 get_process_target_triple() = begin
     ptr = ccall((:LLVM_General_GetProcessTargetTriple, libllvmgeneral), Ptr{Uint8}, ())
     res = bytestring(ptr)
-    c_free(ptr)
+    Base.c_free(ptr)
     return res
 end
 
@@ -1682,7 +1682,7 @@ end
 get_host_cpu_features() = begin
     ptr = ccall((:LLVM_General_GetHostCPUFeatures, libllvmgeneral), Ptr{Uint8}, ())
     res = bytestring(ptr)
-    c_free(ptr)
+    Base.c_free(ptr)
     return res
 end
 
@@ -1690,7 +1690,7 @@ get_target_machine_datalayout(tmachine) = begin
     ptr = ccall((:LLVM_General_GetTargetMachineDataLayout, libllvmgeneral), Ptr{Uint8},
                 (TargeMachinePtr,), tmachine)
     res = bytestring(ptr)
-    c_free(ptr)
+    Base.c_free(ptr)
     return res
 end
 
