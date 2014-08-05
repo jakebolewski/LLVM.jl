@@ -78,8 +78,9 @@ LLVM.with_ctx() do ctx
                                 "global double 1.000000e+00")
             check_result(ctx, ast, asm)
         end
-        
+
         # crazy float types are missing...
+        
         context("struct") do
             ast, asm = test_ast(Ast.StructType(false, [Uint32, Uint32]),
                                 Ast.ConstStruct(nothing, 
@@ -152,5 +153,7 @@ LLVM.with_ctx() do ctx
                             "global i32* getelementptr inbounds (i32* @1, i64 27)")
             check_result(ctx, ast, asm)
         end
+
+        #LLVM.dispose!(ctx)
     end
 end

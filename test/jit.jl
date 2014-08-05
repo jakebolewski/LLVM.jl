@@ -44,5 +44,6 @@ facts("test jitting a simple module") do
             fptr = LLVM.get_function(eng, mod2, "foo")
             ccall(fptr, Int32, (Int32,), 10)
         end => 999
+        LLVM.dispose!(ctx)
     end
 end

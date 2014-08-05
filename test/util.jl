@@ -23,6 +23,9 @@ function check_result(ctx, ast, asm)
     
     # check that we can produce a valid assembly string from the ast
     @fact LLVM.module_to_assembly(ctx, mod2) => asm
+
+    LLVM.FFI.dispose_module(mod1)
+    LLVM.FFI.dispose_module(mod2)
 end
 
 test_float_roundtrip{T}(::Type{T}, ctx, n) = begin
@@ -35,6 +38,7 @@ test_float_roundtrip{T}(::Type{T}, ctx, n) = begin
 
         ds = LLVM.DecodeState(ctx)
         a2 = LLVM.decode_llvm(ds, c)
+
         @assert a1 == a2
     end 
 end 

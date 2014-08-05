@@ -25,7 +25,7 @@ isglobalctx(c::Context) = c.isglobal
 dispose!(c::Context) = begin
     if !(isnull(c.handle) || isglobalctx(c))
         FFI.dispose_ctx(c.handle)
-        c.handle = ContextPtr(C_NULL)
+        #c.handle = ContextPtr(C_NULL)
     end 
 end 
 
