@@ -237,7 +237,7 @@ immutable PtrType <: LLVMType
     typ::LLVMType
     addrspace::AddrSpace
 end
-
+PtrType(typ) = PtrType(typ, Ast.AddrSpace(0))
 Base.convert{T}(::Type{LLVMType}, ::Type{Ptr{T}}) = PtrType(T, AddrSpace(0))
 
 # http://llvm.org/docs/LangRef.html#floating-point-types
@@ -276,8 +276,8 @@ immutable ArrayType <: LLVMType
 end
 
 # http://llvm.org/docs/LangRef.html#opaque-structure-types
-immutable NamedTypeRef 
-    val::Name
+immutable NamedTypeRef <: LLVMType
+    val::LLVMName
 end 
 
 # http://llvm.org/docs/LangRef.html#opaque-structure-types
@@ -1064,9 +1064,10 @@ type GlobalDef <: Definition
     val::LLVMGlobal
 end
 
+#TODO: revist this
 type TypeDef <: Definition
     name::LLVMName
-    typs::Vector{LLVMType}
+    typs#::Vector{LLVMType}
 end
 
 type MetadataNodeDef <: Definition
